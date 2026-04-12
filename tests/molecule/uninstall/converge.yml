@@ -1,0 +1,27 @@
+---
+- name: Converge — uninstall opencode
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    opencode_user: "test"
+    opencode_install_dir: "/opt/opencode"
+    opencode_bin_wrapper: "/usr/local/bin/opencode"
+
+  pre_tasks:
+    - name: Resolve user home
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ opencode_user }}"
+
+  tasks:
+    - name: Remove wrapper
+      ansible.builtin.file:
+        path: "{{ opencode_bin_wrapper }}"
+        state: absent
+
+    - name: Remove install directory
+      ansible.builtin.file:
+        path: "{{ opencode_install_dir }}"
+        state: absent

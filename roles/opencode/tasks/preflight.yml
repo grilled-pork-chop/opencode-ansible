@@ -1,0 +1,56 @@
+---
+- name: "Gather passwd facts for home directory"
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ opencode_user }}"
+  tags: [opencode, preflight]
+
+- name: "Set config paths from user home"
+  ansible.builtin.set_fact:
+    opencode_config_dir:  "{{ ansible_facts['getent_passwd'][opencode_user][4] }}/.config/opencode"
+    opencode_config_file: "{{ ansible_facts['getent_passwd'][opencode_user][4] }}/.config/opencode/opencode.json"
+  tags: [opencode, preflight]
+
+- name: "Verify bundle exists"
+  ansible.builtin.stat:
+    path: "{{ opencode_bundle_path }}"
+  register: opencode__bundle_stat
+  delegate_to: localhost
+  become: false
+  tags: [opencode, preflight]
+
+- name: "Abort if bundle is missing"
+  ansible.builtin.fail:
+    msg: |
+      Bundle not found: {{ opencode_bundle_path }}
+      Run: ./fetch-binaries.sh --version {{ opencode_version }}
+  when: not opencode__bundle_stat.stat.exists
+  tags: [opencode, preflight]
+
+- name: "Validate default model exists in models list"
+  ansible.builtin.assert:
+    that: opencode_default_model in (opencode_models | map(attribute='name') | list)
+    msg: "'{{ opencode_default_model }}' not in opencode_models"
+  tags: [opencode, preflight]
+
+- name: "Create bundle extraction directory on controller"
+  ansible.builtin.command:
+    cmd: "mkdir -p /tmp/opencode-bundle-{{ opencode_version }}"
+    creates: "/tmp/opencode-bundle-{{ opencode_version }}"
+  delegate_to: localhost
+  become: false
+  tags: [opencode, preflight]
+
+- name: "Extract bundle on controller"
+  ansible.builtin.unarchive:
+    src: "{{ opencode_bundle_path }}"
+    dest: "/tmp/opencode-bundle-{{ opencode_version }}"
+    creates: "/tmp/opencode-bundle-{{ opencode_version }}/opencode-linux-x64"
+  delegate_to: localhost
+  become: false
+  tags: [opencode, preflight]
+
+- name: "Set bundle directory fact"
+  ansible.builtin.set_fact:
+    opencode__bundle_dir: "/tmp/opencode-bundle-{{ opencode_version }}"
+  tags: [opencode, preflight]

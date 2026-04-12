@@ -1,0 +1,25 @@
+---
+- name: "Smoke test"
+  ansible.builtin.command:
+    cmd: "{{ opencode_bin_wrapper }} --version"
+  register: opencode__smoke
+  changed_when: false
+  failed_when: opencode__smoke.rc != 0
+  tags: [opencode, verify]
+
+- name: "Assert version"
+  ansible.builtin.assert:
+    that: opencode_version in opencode__smoke.stdout
+    msg: "Expected {{ opencode_version }}, got: {{ opencode__smoke.stdout | trim }}"
+  tags: [opencode, verify]
+
+- name: "Summary"
+  ansible.builtin.debug:
+    msg:
+      - "✓ {{ opencode__smoke.stdout | trim }}"
+      - "  Binary  : {{ opencode_install_dir }}/bin/opencode"
+      - "  Wrapper : {{ opencode_bin_wrapper }}"
+      - "  Config  : {{ opencode_config_file }}"
+      - "  Provider: {{ opencode_provider_url }}"
+      - "  Models  : {{ opencode_models | map(attribute='name') | list }}"
+  tags: [opencode, verify]

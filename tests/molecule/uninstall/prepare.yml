@@ -1,0 +1,22 @@
+---
+- import_playbook: ../../resources/prepare_host.yml
+
+- import_playbook: ../../resources/prepare_bundle.yml
+  vars:
+    _bundle_version: "1.4.3"
+
+- name: Prepare — install opencode before uninstall test
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: opencode
+      vars:
+        opencode_version: "1.4.3"
+        opencode_bundle_path: "/tmp/opencode-bundle-1.4.3.tar.gz"
+        opencode_verify_checksum: false
+        opencode_user: "test"
+        opencode_provider_url: "http://10.0.0.1:8000/v1"
+        opencode_models:
+          - name: "deepseek-v32"
+        opencode_default_model: "deepseek-v32"

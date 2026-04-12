@@ -1,0 +1,5 @@
+---
+- import_playbook: ../../resources/prepare_host.yml
+- import_playbook: ../../resources/prepare_bundle.yml
+  vars:
+    _bundle_version: "1.4.3"

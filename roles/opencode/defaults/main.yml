@@ -1,0 +1,25 @@
+---
+opencode_version: "1.4.3"
+
+# Path to the bundle produced by fetch-binaries.sh
+opencode_bundle_path: "{{ playbook_dir }}/opencode-bundle-{{ opencode_version }}.tar.gz"
+
+# Binary and npm cache — shared system-wide, all users
+opencode_install_dir: "/opt/opencode"
+opencode_bin_wrapper: "/usr/local/bin/opencode"
+
+# User to deploy config for — set per host in host_vars/
+opencode_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
+
+# Provider — one provider, one or more models
+opencode_provider_url:  "http://localhost:8000/v1"
+opencode_models:
+  - name: "deepseek-v32"
+opencode_default_model: "deepseek-v32"
+
+opencode_keep_backup:     true
+opencode_force_reinstall: false
+
+# Populated in group_vars/all.yml by fetch-binaries.sh
+opencode_verify_checksum:    true
+opencode_checksum_linux_x64: ""

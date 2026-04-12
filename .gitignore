@@ -1,0 +1,21 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Ansible
+*.retry
+.ansible/
+
+# Molecule ephemeral state
+tests/molecule/*/.molecule/
+tests/molecule/*/tmp/
+
+# Editor
+.DS_Store
+*.swp
+*.swo
+
+# Offline deployment bundle
+opencode-bundle-*.tar.gz

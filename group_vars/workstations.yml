@@ -1,0 +1,14 @@
+---
+# Per-group variable overrides for the 'workstations' group.
+# These override role defaults for all hosts in the group.
+# host_vars/<hostname>.yml can further override on a per-host basis.
+#
+# Uncomment and adjust as needed:
+
+# opencode_install_dir: /opt/opencode
+# opencode_bin_wrapper: /usr/local/bin/opencode
+# opencode_provider_url: http://localhost:8000/v1
+# opencode_models:
+#   - name: deepseek-v32
+# opencode_default_model: deepseek-v32
+# opencode_keep_backup: true

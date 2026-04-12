@@ -1,0 +1,47 @@
+---
+- name: "Read installed version"
+  ansible.builtin.stat:
+    path: "{{ opencode_install_dir }}/bin/opencode"
+  register: opencode__existing
+  tags: [opencode, detect]
+
+- name: "Read installed version string"
+  ansible.builtin.command:
+    cmd: "{{ opencode_install_dir }}/bin/opencode --version"
+  register: opencode__installed_ver
+  changed_when: false
+  failed_when: false
+  when: opencode__existing.stat.exists
+  tags: [opencode, detect]
+
+- name: "Determine install action"
+  ansible.builtin.set_fact:
+    opencode__current_version: >-
+      {{
+        (opencode__installed_ver.stdout | default('') | trim).split() | last
+        | default('none', true)
+      }}
+  tags: [opencode, detect]
+
+- name: "Set install action"
+  ansible.builtin.set_fact:
+    opencode__action: >-
+      {{
+        'none'    if (not opencode_force_reinstall | bool
+                      and opencode__current_version == opencode_version)
+        else 'upgrade' if (opencode__existing.stat.exists
+                           and opencode__current_version not in ['none', opencode_version])
+        else 'install'
+      }}
+  tags: [opencode, detect]
+
+- name: "Show action"
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        'opencode ' ~ opencode_version ~ ' already installed.'
+        if opencode__action == 'none'
+        else opencode__action | capitalize ~ ': '
+             ~ opencode__current_version ~ ' → ' ~ opencode_version
+      }}
+  tags: [opencode, detect]

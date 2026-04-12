@@ -1,0 +1,29 @@
+---
+- name: Uninstall opencode
+  hosts: all
+  become: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: Resolve user home
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ opencode_user }}"
+
+  tasks:
+    - name: Remove wrapper
+      ansible.builtin.file:
+        path: "{{ opencode_bin_wrapper }}"
+        state: absent
+
+    - name: Remove install directory
+      ansible.builtin.file:
+        path: "{{ opencode_install_dir }}"
+        state: absent
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "Removed: {{ opencode_bin_wrapper }}"
+          - "Removed: {{ opencode_install_dir }}"
+          - "Kept   : ~/.config/opencode/ (user config preserved)"

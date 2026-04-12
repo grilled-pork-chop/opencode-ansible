@@ -1,0 +1,20 @@
+---
+- name: Deploy opencode
+  hosts: all
+  gather_facts: true
+
+  pre_tasks:
+    - name: Assert Ansible >= 2.12
+      ansible.builtin.assert:
+        that: ansible_version.full is version('2.12', '>=')
+        msg: "Requires Ansible >= 2.12"
+
+    - name: Assert Linux x86_64
+      ansible.builtin.assert:
+        that:
+          - ansible_system == 'Linux'
+          - ansible_architecture == 'x86_64'
+        msg: "Only Linux x86_64 supported"
+
+  roles:
+    - role: opencode

@@ -1,0 +1,22 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+driver:
+  name: docker
+platforms:
+- name: opencode-install
+  image: ubuntu:22.04
+  pre_build_image: true
+  command: /bin/bash
+  tty: true
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      opencode-install:
+        ansible_python_interpreter: /usr/bin/python3
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../roles"
+verifier:
+  name: ansible

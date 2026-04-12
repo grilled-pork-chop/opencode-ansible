@@ -1,0 +1,18 @@
+---
+- name: Converge — update config only
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: opencode
+      vars:
+        opencode_version: "1.4.3"
+        opencode_bundle_path: "/tmp/opencode-bundle-1.4.3.tar.gz"
+        opencode_verify_checksum: false
+        opencode_user: "test"
+        opencode_provider_url: "http://new-server:9000/v1"
+        opencode_models:
+          - name: "deepseek-v32"
+          - name: "qwen3-coder"
+          - name: "llama3:70b"
+        opencode_default_model: "qwen3-coder"

@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: opencode
+  author: grilled-pork-chop
+  description: Deploy opencode offline to Linux x86_64 workstations. No internet on targets.
+  license: MIT
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions: [22.04, 24.04]
+    - name: Debian
+      versions: [11, 12]
+    - name: EL
+      versions: [9]
+dependencies: []

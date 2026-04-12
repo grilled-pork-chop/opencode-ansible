@@ -1,0 +1,54 @@
+---
+# Creates a fake opencode bundle tarball for molecule testing.
+# The bundle path is /tmp/opencode-bundle-{_bundle_version}.tar.gz
+# Pass opencode_bundle_path in converge.yml to point the role at it.
+- name: Create fake bundle for testing
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    _bundle_version: "1.4.3"
+    _bundle_path: "/tmp/opencode-bundle-{{ _bundle_version }}.tar.gz"
+
+  tasks:
+    - name: Create temp work directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: "mol_bundle_"
+      register: _work
+
+    - name: Create fake opencode binary
+      ansible.builtin.copy:
+        dest: "{{ _work.path }}/opencode-linux-x64"
+        mode: "0755"
+        content: |
+          #!/usr/bin/env bash
+          [[ "${1:-}" == "--version" ]] && echo "opencode {{ _bundle_version }}" && exit 0
+          exit 0
+
+    - name: Create fake node_modules archive
+      ansible.builtin.shell: |
+        mkdir -p {{ _work.path }}/nm/node_modules/@ai-sdk/openai-compatible
+        echo '{"name":"@ai-sdk/openai-compatible","version":"2.0.41"}' \
+          > {{ _work.path }}/nm/node_modules/@ai-sdk/openai-compatible/package.json
+        tar -czf {{ _work.path }}/node_modules.tar.gz -C {{ _work.path }}/nm node_modules
+        rm -rf {{ _work.path }}/nm
+
+    - name: Create fake api.json
+      ansible.builtin.copy:
+        dest: "{{ _work.path }}/api.json"
+        content: '{"models": [{"id": "deepseek-v32"}]}'
+
+    - name: Create checksums and version files
+      ansible.builtin.shell: |
+        sha256sum {{ _work.path }}/opencode-linux-x64 | awk '{print $1 "  opencode-linux-x64"}' \
+          > {{ _work.path }}/checksums.sha256
+        echo "{{ _bundle_version }}+2.0.41" > {{ _work.path }}/bundle.version
+
+    - name: Pack bundle tarball
+      ansible.builtin.shell: |
+        tar -czf {{ _bundle_path }} -C {{ _work.path }} .
+        rm -rf {{ _work.path }}
+      args:
+        creates: "{{ _bundle_path }}"

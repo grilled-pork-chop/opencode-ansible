@@ -1,0 +1,81 @@
+---
+- name: "Back up binary before upgrade"
+  ansible.builtin.copy:
+    src: "{{ opencode_install_dir }}/bin/opencode"
+    dest: "{{ opencode_install_dir }}/bin/opencode.bak.{{ opencode__current_version }}"
+    mode: "0755"
+    remote_src: true
+  when:
+    - opencode__action == 'upgrade'
+    - opencode_keep_backup | bool
+  tags: [opencode, upgrade]
+
+- name: "Verify binary checksum"
+  ansible.builtin.stat:
+    path: "{{ opencode__bundle_dir }}/opencode-linux-x64"
+    checksum_algorithm: sha256
+    get_checksum: true
+  register: opencode__bin_stat
+  delegate_to: localhost
+  become: false
+  when:
+    - opencode__action != 'none'
+    - opencode_verify_checksum | bool
+    - opencode_checksum_linux_x64 | length > 0
+  tags: [opencode, binary]
+
+- name: "Assert checksum matches"
+  ansible.builtin.assert:
+    that: opencode__bin_stat.stat.checksum == opencode_checksum_linux_x64
+    msg: "SHA-256 mismatch — binary may be corrupted. Re-run fetch-binaries.sh."
+  when:
+    - opencode__action != 'none'
+    - opencode_verify_checksum | bool
+    - opencode_checksum_linux_x64 | length > 0
+    - opencode__bin_stat is defined
+  tags: [opencode, binary]
+
+- name: "Create install directory"
+  ansible.builtin.file:
+    path: "{{ opencode_install_dir }}/bin"
+    state: directory
+    mode: "0755"
+  when: opencode__action != 'none'
+  tags: [opencode, binary]
+
+- name: "Install binary"
+  ansible.builtin.copy:
+    src: "{{ opencode__bundle_dir }}/opencode-linux-x64"
+    dest: "{{ opencode_install_dir }}/bin/opencode"
+    mode: "0755"
+  when: opencode__action != 'none'
+  tags: [opencode, binary]
+
+- name: "Create cache directory"
+  ansible.builtin.file:
+    path: "{{ opencode_install_dir }}/cache"
+    state: directory
+    mode: "0755"
+  tags: [opencode, deps]
+
+- name: "Deploy bundle.version sentinel"
+  ansible.builtin.copy:
+    src: "{{ opencode__bundle_dir }}/bundle.version"
+    dest: "{{ opencode_install_dir }}/cache/bundle.version"
+    mode: "0644"
+  register: opencode__bundle_version_changed
+  tags: [opencode, deps]
+
+- name: "Extract npm provider packages"
+  ansible.builtin.unarchive:
+    src: "{{ opencode__bundle_dir }}/node_modules.tar.gz"
+    dest: "{{ opencode_install_dir }}/cache"
+  when: opencode__bundle_version_changed.changed
+  tags: [opencode, deps]
+
+- name: "Deploy api.json"
+  ansible.builtin.copy:
+    src: "{{ opencode__bundle_dir }}/api.json"
+    dest: "{{ opencode_install_dir }}/cache/api.json"
+    mode: "0644"
+  tags: [opencode, deps]

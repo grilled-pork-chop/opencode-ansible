@@ -1,0 +1,140 @@
+---
+- name: Verify — fresh install
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    _config: "/home/test/.config/opencode/opencode.json"
+    opencode_version: "1.4.3"
+    opencode_provider_url: "http://10.0.0.1:8000/v1"
+
+  tasks:
+    # ── Binary ────────────────────────────────────────────────────────────
+    - name: "[test] Binary installed and executable"
+      ansible.builtin.stat:
+        path: /opt/opencode/bin/opencode
+      register: _bin
+      failed_when: not _bin.stat.exists or not _bin.stat.executable
+
+    - name: "[test] Binary reports {{ opencode_version }}"
+      ansible.builtin.command: /opt/opencode/bin/opencode --version
+      register: _ver
+      changed_when: false
+      failed_when: opencode_version not in _ver.stdout
+
+    # ── Wrapper ───────────────────────────────────────────────────────────
+    - name: "[test] Wrapper exists at /usr/local/bin/opencode"
+      ansible.builtin.stat:
+        path: /usr/local/bin/opencode
+      register: _wrap
+      failed_when: not _wrap.stat.exists or not _wrap.stat.executable
+
+    - name: "[test] Wrapper runs correctly"
+      ansible.builtin.command: /usr/local/bin/opencode --version
+      register: _wrap_ver
+      changed_when: false
+      failed_when: opencode_version not in _wrap_ver.stdout
+
+    - name: "[test] Read wrapper content"
+      ansible.builtin.slurp:
+        src: /usr/local/bin/opencode
+      register: _wrap_src
+
+    - name: "[test] Set wrapper text"
+      ansible.builtin.set_fact:
+        _wrap_text: "{{ _wrap_src.content | b64decode }}"
+
+    - name: "[test] Wrapper sets NODE_PATH and OPENCODE_MODELS_URL, not OPENCODE_CONFIG or .bashrc"
+      ansible.builtin.assert:
+        that:
+          - "'NODE_PATH' in _wrap_text"
+          - "'OPENCODE_MODELS_URL' in _wrap_text"
+          - "'OPENCODE_CONFIG' not in _wrap_text"
+          - "'.bashrc' not in _wrap_text"
+        msg: "Wrapper content unexpected: {{ _wrap_text }}"
+
+    # ── Non-root user test ────────────────────────────────────────────────
+    - name: "[test] User 'test' can run opencode"
+      ansible.builtin.command: /usr/local/bin/opencode --version
+      become: true
+      become_user: test
+      register: _user_ver
+      changed_when: false
+      failed_when: opencode_version not in _user_ver.stdout
+
+    - name: "[test] Read .bashrc"
+      ansible.builtin.slurp:
+        src: /home/test/.bashrc
+      register: _bashrc_raw
+      failed_when: false
+
+    - name: "[test] Role env vars not injected into .bashrc"
+      ansible.builtin.assert:
+        that:
+          - "'NODE_PATH' not in (_bashrc_raw.content | default('') | b64decode)"
+          - "'OPENCODE_MODELS_URL' not in (_bashrc_raw.content | default('') | b64decode)"
+        msg: ".bashrc was modified by the role (should not be)"
+
+    # ── Config at standard path ───────────────────────────────────────────
+    - name: "[test] Config at standard XDG path"
+      ansible.builtin.stat:
+        path: "{{ _config }}"
+      register: _cfg_stat
+      failed_when: not _cfg_stat.stat.exists
+
+    - name: "[test] Config NOT in /etc/opencode (non-standard)"
+      ansible.builtin.stat:
+        path: /etc/opencode/opencode.json
+      register: _etc_cfg
+      failed_when: _etc_cfg.stat.exists
+
+    - name: "[test] Read config"
+      ansible.builtin.slurp:
+        src: "{{ _config }}"
+      register: _cfg_raw
+
+    - name: "[test] Parse config"
+      ansible.builtin.set_fact:
+        _cfg: "{{ _cfg_raw.content | b64decode | from_json }}"
+
+    - name: "[test] autoupdate is false"
+      ansible.builtin.assert:
+        that: _cfg.autoupdate == false
+
+    - name: "[test] Exactly one provider"
+      ansible.builtin.assert:
+        that: (_cfg.provider | length) == 1
+        msg: "Expected 1 provider, got {{ _cfg.provider | length }}"
+
+    - name: "[test] Provider URL correct"
+      ansible.builtin.assert:
+        that: _cfg.provider.local.options.baseURL == opencode_provider_url
+        msg: "Expected {{ opencode_provider_url }}, got: {{ _cfg.provider.local.options.baseURL }}"
+
+    - name: "[test] Both models present"
+      ansible.builtin.assert:
+        that:
+          - "'deepseek-v32' in _cfg.provider.local.models"
+          - "'qwen3-coder' in _cfg.provider.local.models"
+        msg: "Models: {{ _cfg.provider.local.models.keys() | list }}"
+
+    - name: "[test] Default model correct"
+      ansible.builtin.assert:
+        that: _cfg.model == 'local/deepseek-v32'
+        msg: "Wrong default: {{ _cfg.model }}"
+
+    # ── Idempotency ───────────────────────────────────────────────────────
+    - name: "[test] Re-run is idempotent"
+      ansible.builtin.include_role:
+        name: opencode
+      vars:
+        opencode_version: "1.4.3"
+        opencode_bundle_path: "/tmp/opencode-bundle-1.4.3.tar.gz"
+        opencode_verify_checksum: false
+        opencode_user: "test"
+        opencode_provider_url: "http://10.0.0.1:8000/v1"
+        opencode_models:
+          - name: "deepseek-v32"
+          - name: "qwen3-coder"
+        opencode_default_model: "deepseek-v32"

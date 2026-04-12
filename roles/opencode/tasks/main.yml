@@ -1,0 +1,6 @@
+---
+- import_tasks: preflight.yml
+- import_tasks: detect.yml
+- import_tasks: install.yml
+- import_tasks: config.yml
+- import_tasks: verify.yml

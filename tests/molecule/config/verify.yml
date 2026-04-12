@@ -1,0 +1,110 @@
+---
+- name: Verify — config update
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    _config: "/home/test/.config/opencode/opencode.json"
+    opencode_version: "1.4.3"
+    opencode_provider_url: "http://new-server:9000/v1"
+
+  tasks:
+    - name: "[test] Binary untouched (same version)"
+      ansible.builtin.command: /usr/local/bin/opencode --version
+      register: _ver
+      changed_when: false
+      failed_when: opencode_version not in _ver.stdout
+
+    - name: "[test] No binary backup (no upgrade happened)"
+      ansible.builtin.find:
+        paths: /opt/opencode/bin
+        patterns: "opencode.bak.*"
+      register: _backups
+
+    - name: "[test] Assert no binary backup"
+      ansible.builtin.assert:
+        that: _backups.matched == 0
+        msg: "Binary backup found — binary should not have been touched"
+
+    - name: "[test] Read config"
+      ansible.builtin.slurp:
+        src: "{{ _config }}"
+      register: _cfg_raw
+
+    - name: "[test] Parse config"
+      ansible.builtin.set_fact:
+        _cfg: "{{ _cfg_raw.content | b64decode | from_json }}"
+
+    - name: "[test] New provider URL in config"
+      ansible.builtin.assert:
+        that: _cfg.provider.local.options.baseURL == opencode_provider_url
+        msg: "Expected {{ opencode_provider_url }}, got: {{ _cfg.provider.local.options.baseURL }}"
+
+    - name: "[test] Old provider URL gone"
+      ansible.builtin.assert:
+        that: "'http://original-server/v1' not in (_cfg_raw.content | b64decode)"
+        msg: "Old URL still present"
+
+    - name: "[test] All three new models present"
+      ansible.builtin.assert:
+        that:
+          - "'deepseek-v32' in _cfg.provider.local.models"
+          - "'qwen3-coder' in _cfg.provider.local.models"
+          - "'llama3:70b' in _cfg.provider.local.models"
+        msg: "Models: {{ _cfg.provider.local.models.keys() | list }}"
+
+    - name: "[test] Old model removed"
+      ansible.builtin.assert:
+        that: "'original-model' not in _cfg.provider.local.models"
+        msg: "Old model still present"
+
+    - name: "[test] New default model"
+      ansible.builtin.assert:
+        that: _cfg.model == 'local/qwen3-coder'
+        msg: "Wrong default: {{ _cfg.model }}"
+
+    - name: "[test] Exactly one provider"
+      ansible.builtin.assert:
+        that: (_cfg.provider | length) == 1
+        msg: "Got {{ _cfg.provider | length }} providers"
+
+    - name: "[test] Find timestamped backup of old config"
+      ansible.builtin.find:
+        paths: "{{ _config | dirname }}"
+        patterns: "opencode.json.*~"
+      register: _bak_files
+      failed_when: _bak_files.matched == 0
+
+    - name: "[test] Backup has original URL"
+      ansible.builtin.slurp:
+        src: "{{ _bak_files.files[0].path }}"
+      register: _bak_raw
+
+    - name: "[test] Assert backup has original URL"
+      ansible.builtin.assert:
+        that: "'http://original-server/v1' in (_bak_raw.content | b64decode)"
+        msg: "Backup doesn't have original URL"
+
+    - name: "[test] User 'test' still runs opencode with new config"
+      ansible.builtin.command: /usr/local/bin/opencode --version
+      become: true
+      become_user: test
+      register: _user_ver
+      changed_when: false
+      failed_when: opencode_version not in _user_ver.stdout
+
+    - name: "[test] Idempotent re-run"
+      ansible.builtin.include_role:
+        name: opencode
+      vars:
+        opencode_version: "1.4.3"
+        opencode_bundle_path: "/tmp/opencode-bundle-1.4.3.tar.gz"
+        opencode_verify_checksum: false
+        opencode_user: "test"
+        opencode_provider_url: "http://new-server:9000/v1"
+        opencode_models:
+          - name: "deepseek-v32"
+          - name: "qwen3-coder"
+          - name: "llama3:70b"
+        opencode_default_model: "qwen3-coder"
