@@ -5,11 +5,11 @@ dependency:
 driver:
   name: docker
 platforms:
-- name: opencode-install
-  image: ubuntu:22.04
-  pre_build_image: true
-  command: /bin/bash
-  tty: true
+  - name: opencode-install
+    image: ubuntu:22.04
+    pre_build_image: true
+    command: /bin/bash
+    tty: true
 provisioner:
   name: ansible
   inventory:

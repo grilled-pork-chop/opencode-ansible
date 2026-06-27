@@ -1,0 +1,1 @@
+export { LocalModelPlugin } from "./plugin"

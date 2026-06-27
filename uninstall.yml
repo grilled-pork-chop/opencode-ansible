@@ -4,26 +4,26 @@
   become: true
   gather_facts: false
 
-  pre_tasks:
-    - name: Resolve user home
+  tasks:
+    - name: Remove the system binary
+      ansible.builtin.file:
+        path: "{{ opencode_bin_path }}"
+        state: absent
+
+    - name: Read passwd database to resolve user homes
       ansible.builtin.getent:
         database: passwd
-        key: "{{ opencode_user }}"
+      when: opencode_users | length > 0
 
-  tasks:
-    - name: Remove wrapper
+    - name: Remove per-user opencode config
       ansible.builtin.file:
-        path: "{{ opencode_bin_wrapper }}"
+        path: "{{ ansible_facts.getent_passwd[item][4] }}/.config/opencode"
         state: absent
-
-    - name: Remove install directory
-      ansible.builtin.file:
-        path: "{{ opencode_install_dir }}"
-        state: absent
+      loop: "{{ opencode_users }}"
+      when: item in ansible_facts.getent_passwd
 
     - name: Summary
       ansible.builtin.debug:
         msg:
-          - "Removed: {{ opencode_bin_wrapper }}"
-          - "Removed: {{ opencode_install_dir }}"
-          - "Kept   : ~/.config/opencode/ (user config preserved)"
+          - "Removed: {{ opencode_bin_path }}"
+          - "Removed: ~/.config/opencode for {{ opencode_users | join(', ') | default('(none)', true) }}"

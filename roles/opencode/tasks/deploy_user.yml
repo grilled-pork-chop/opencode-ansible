@@ -1,0 +1,43 @@
+---
+# Deploy the opencode payload into one account's ~/.config/opencode.
+# `opencode_account` is the username (set by the loop in main.yml).
+
+- name: "Assert {{ opencode_account }} exists on this host"
+  ansible.builtin.assert:
+    that: opencode_account in ansible_facts.getent_passwd
+    fail_msg: "User '{{ opencode_account }}' not found in passwd on {{ inventory_hostname }}."
+    quiet: true
+
+- name: "Resolve config dir for {{ opencode_account }}"
+  ansible.builtin.set_fact:
+    opencode_user_config: "{{ ansible_facts.getent_passwd[opencode_account][4] }}/.config/opencode"
+
+- name: "Ensure {{ opencode_user_config }} exists"
+  ansible.builtin.file:
+    path: "{{ opencode_user_config }}"
+    state: directory
+    owner: "{{ opencode_account }}"
+    group: "{{ opencode_account }}"
+    mode: "0755"
+
+- name: "Render opencode.jsonc for {{ opencode_account }}"
+  ansible.builtin.template:
+    src: opencode.jsonc.j2
+    dest: "{{ opencode_user_config }}/opencode.jsonc"
+    owner: "{{ opencode_account }}"
+    group: "{{ opencode_account }}"
+    mode: "0644"
+  tags: [config]
+
+- name: "Deploy commands/skills/plugins for {{ opencode_account }}"
+  ansible.builtin.copy:
+    src: "{{ item }}/"
+    dest: "{{ opencode_user_config }}/{{ item }}/"
+    owner: "{{ opencode_account }}"
+    group: "{{ opencode_account }}"
+    mode: preserve
+  loop:
+    - commands
+    - skills
+    - plugins
+  tags: [plugins]

@@ -17,5 +17,5 @@ tests/molecule/*/tmp/
 *.swp
 *.swo
 
-# Offline deployment bundle
-opencode-bundle-*.tar.gz
+# opencode binary — fetched via `make fetch`, too large for git
+roles/opencode/files/opencode

@@ -1,14 +1,13 @@
 ---
-# Per-group variable overrides for the 'workstations' group.
-# These override role defaults for all hosts in the group.
-# host_vars/<hostname>.yml can further override on a per-host basis.
-#
-# Uncomment and adjust as needed:
+# Settings for every host in the 'workstations' group.
+# Override role defaults here; host_vars/<host>.yml can refine per host.
 
-# opencode_install_dir: /opt/opencode
-# opencode_bin_wrapper: /usr/local/bin/opencode
-# opencode_provider_url: http://localhost:8000/v1
-# opencode_models:
-#   - name: deepseek-v32
-# opencode_default_model: deepseek-v32
-# opencode_keep_backup: true
+# The local OpenAI-compatible endpoint the deployed config points at.
+# (Models are auto-discovered by the bundled local-model plugin.)
+opencode_provider_url: "http://localhost:8000/v1"
+
+# Accounts that receive the per-user opencode payload (config + commands +
+# skills + plugins) in their ~/.config/opencode/. List the real users here.
+opencode_users:
+  - alice
+  - bob

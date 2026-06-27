@@ -1,0 +1,10 @@
+---
+profile: production
+
+exclude_paths:
+  - .venv/
+  - tests/molecule/
+
+# files/plugins ships vendored TypeScript; not Ansible content.
+kinds:
+  - yaml: "**/*.yml"

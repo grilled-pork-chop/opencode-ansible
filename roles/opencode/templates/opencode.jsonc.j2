@@ -1,0 +1,191 @@
+{
+  // MANAGED BY ANSIBLE (role: opencode) — do not edit by hand; changes are overwritten.
+  // Safe-by-default OpenCode permissions.
+  // Model: read-only -> allow, mutating -> ask, catastrophic -> deny.
+  // Rules are matched by glob; the LAST matching rule wins, so put the
+  // catch-all "*" first and the more specific (and deny) rules after.
+  "$schema": "https://opencode.ai/config.json",
+
+  "permission": {
+    // ---------------------------------------------------------------
+    // Read-only tools: safe to run without approval
+    // ---------------------------------------------------------------
+    "read": {
+      "*": "allow",
+      // Never auto-read secrets (these defaults ship with OpenCode; kept + extended)
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow",
+      "**/.env": "deny",
+      "**/secrets/**": "deny",
+      "**/*.pem": "deny",
+      "**/*.key": "deny",
+      "**/id_rsa*": "deny",
+      "**/.ssh/**": "deny",
+      "**/.aws/**": "deny",
+      "**/.kube/config": "deny"
+    },
+
+    "glob": "allow",
+    "grep": "allow",
+    "lsp": "allow",
+    "skill": "allow",
+    "task": "allow",
+    "todowrite": "allow",
+    "question": "allow",
+
+    // ---------------------------------------------------------------
+    // OFFLINE: network tools are denied outright (deny, not remove --
+    // removing reverts these to OpenCode's permissive "allow" default).
+    // ---------------------------------------------------------------
+    "websearch": "deny",
+    "webfetch": "deny",
+
+    // ---------------------------------------------------------------
+    // File mutations: ask before changing anything, never touch secrets
+    // ---------------------------------------------------------------
+    "edit": {
+      "*": "ask",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "ask",
+      "**/secrets/**": "deny",
+      "**/*.pem": "deny",
+      "**/*.key": "deny",
+      "**/.ssh/**": "deny"
+    },
+
+    // ---------------------------------------------------------------
+    // Shell: allow read-only inspection, ask for everything else,
+    // hard-deny the genuinely destructive (deny rules placed last so
+    // they win over the allow rules above).
+    // ---------------------------------------------------------------
+    "bash": {
+      "*": "ask",
+
+      // Filesystem & inspection (read-only)
+      "ls*": "allow",
+      "cat*": "allow",
+      "head*": "allow",
+      "tail*": "allow",
+      "less*": "allow",
+      "pwd": "allow",
+      "echo*": "allow",
+      "which*": "allow",
+      "file*": "allow",
+      "stat*": "allow",
+      "wc*": "allow",
+      "tree*": "allow",
+      "find*": "allow",
+      "grep*": "allow",
+      "rg*": "allow",
+      "fd*": "allow",
+      "sed -n*": "allow",
+      "date*": "allow",
+      "uname*": "allow",
+      "df*": "allow",
+      "du*": "allow",
+      "ps*": "allow",
+      "top -bn1*": "allow",
+
+      // Git (read-only only; commit/push/etc. fall through to "ask")
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git blame*": "allow",
+      "git rev-parse*": "allow",
+      "git remote -v*": "allow",
+      "git stash list*": "allow",
+      "git fetch*": "allow",
+      "git branch": "allow",
+      "git branch -a*": "allow",
+      "git branch -r*": "allow",
+      "git branch -v*": "allow",
+      "git branch --list*": "allow",
+      "git branch --show-current*": "allow",
+
+      // Python / Node dev (tests, linters, type checks, versions)
+      "python --version": "allow",
+      "python3 --version": "allow",
+      "python -m pytest*": "allow",
+      "pytest*": "allow",
+      "ruff*": "allow",
+      "mypy*": "allow",
+      "node --version": "allow",
+      "npm --version": "allow",
+      "pip --version": "allow",
+      "uv --version": "allow",
+      "tsc --noEmit*": "allow",
+      "npm test*": "allow",
+      "npm run test*": "allow",
+      "npm run lint*": "allow",
+      "npm run typecheck*": "allow",
+      "npm run build*": "allow",
+      "pnpm test*": "allow",
+      "pnpm lint*": "allow",
+      "pnpm build*": "allow",
+
+      // Docker / k8s (read-only)
+      "docker ps*": "allow",
+      "docker images*": "allow",
+      "docker logs*": "allow",
+      "kubectl get*": "allow",
+      "kubectl describe*": "allow",
+      "kubectl logs*": "allow",
+
+      // ---- Catastrophic: never run, even if approved by reflex ----
+      "sudo*": "deny",
+      "rm -rf /": "deny",
+      "rm -rf /*": "deny",
+      "rm -rf ~*": "deny",
+      "rm -fr*": "deny",
+      "git push --force*": "deny",
+      "git push -f*": "deny",
+      "git reset --hard*": "deny",
+      "git clean -*": "deny",
+      "chmod -R 777*": "deny",
+      "mkfs*": "deny",
+      "dd if=*": "deny",
+      ":(){*": "deny"
+    },
+
+    // Touching paths outside the project working dir always asks.
+    "external_directory": "ask",
+
+    // Same tool call repeated 3x with identical input -> ask (loop guard).
+    "doom_loop": "ask"
+  },
+
+  // ===================================================================
+  // OFFLINE / AIR-GAPPED hardening
+  // ===================================================================
+
+  // Don't check for or download updates at startup.
+  "autoupdate": false,
+
+  // Never upload conversations off-box.
+  "share": "disabled",
+  "enabled_providers": ["local"],
+
+  // Belt-and-suspenders: setting these false HIDES the tools from the model
+  // entirely (it won't even attempt them), vs. permission "deny" which still
+  // surfaces the tool and then blocks it. Both are set; this just saves turns.
+  "tools": {
+    "webfetch": false,
+    "websearch": false
+  },
+
+  "provider": {
+    "local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Local LLM",
+      "options": {
+        "baseURL": "{{ opencode_provider_url }}"
+      },
+      // Models (and the default) are auto-discovered at startup by the
+      // local-model plugin from the endpoint above — left empty on purpose.
+      "models": {}
+    }
+  }
+}

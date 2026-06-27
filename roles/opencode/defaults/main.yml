@@ -1,25 +1,19 @@
 ---
-opencode_version: "1.4.3"
+# Pinned opencode version. Bump this and replace files/opencode to upgrade.
+# (Asserted at runtime against `opencode --version`.)
+opencode_version: "1.17.11"
 
-# Path to the bundle produced by fetch-binaries.sh
-opencode_bundle_path: "{{ playbook_dir }}/opencode-bundle-{{ opencode_version }}.tar.gz"
+# Where the system-wide binary lands (on PATH for every user).
+opencode_bin_path: "/usr/local/bin/opencode"
 
-# Binary and npm cache — shared system-wide, all users
-opencode_install_dir: "/opt/opencode"
-opencode_bin_wrapper: "/usr/local/bin/opencode"
+# Local OpenAI-compatible endpoint the deployed config points at.
+# Models are auto-discovered by the bundled local-model plugin — no model var.
+opencode_provider_url: "http://localhost:8000/v1"
 
-# User to deploy config for — set per host in host_vars/
-opencode_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
-
-# Provider — one provider, one or more models
-opencode_provider_url:  "http://localhost:8000/v1"
-opencode_models:
-  - name: "deepseek-v32"
-opencode_default_model: "deepseek-v32"
-
-opencode_keep_backup:     true
-opencode_force_reinstall: false
-
-# Populated in group_vars/all.yml by fetch-binaries.sh
-opencode_verify_checksum:    true
-opencode_checksum_linux_x64: ""
+# Accounts that get the per-user payload (config + commands + skills + plugins)
+# in their ~/.config/opencode/. Declare the real list in group_vars/.
+# Example:
+#   opencode_users:
+#     - alice
+#     - bob
+opencode_users: []

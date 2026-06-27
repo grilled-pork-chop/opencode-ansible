@@ -1,150 +1,79 @@
 # opencode-ansible
 
-Ansible role that deploys [opencode](https://opencode.ai) to Linux x86_64 workstations — fully offline, no internet on targets.
+Install a pinned, self-contained **opencode** for a chosen set of users across
+your Linux fleet — fully offline. The repo ships everything it deploys: the
+binary and the per-user payload (config + commands + skills + plugins).
 
-## What gets installed
+No Node.js, no bundle pipeline, no internet on the targets. Ansible just:
 
-| Path | Contents |
-|---|---|
-| `/opt/opencode/bin/opencode` | opencode binary |
-| `/opt/opencode/cache/node_modules/` | `@ai-sdk/openai-compatible` provider package |
-| `/opt/opencode/cache/api.json` | models.dev offline cache |
-| `/usr/local/bin/opencode` | wrapper — sets `NODE_PATH` and `OPENCODE_MODELS_URL`, then runs the binary |
-| `~/.config/opencode/opencode.json` | user config (provider URL + models) |
+1. copies the binary to `/usr/local/bin/opencode` (on PATH for everyone), and
+2. writes the payload into each listed user's `~/.config/opencode/`.
 
-After install, every user types `opencode` and it works. No `.bashrc` changes needed.
+## Layout
+
+```
+roles/opencode/
+├── defaults/main.yml          # version + provider/model + opencode_users
+├── files/
+│   ├── opencode               # the binary            → /usr/local/bin/opencode
+│   ├── commands/              # slash commands         ┐
+│   ├── skills/                # skills                 ├─ → ~/.config/opencode/
+│   └── plugins/               # plugins (local-model)  ┘
+├── templates/
+│   └── opencode.jsonc.j2      # config (provider URL substituted)
+└── tasks/{main,deploy_user}.yml
+```
+
+The config (`opencode.jsonc`) is air-gap hardened: `autoupdate:false`,
+websearch/webfetch denied, a safe-by-default bash allow/ask/deny policy. The
+bundled **local-model-discovery** plugin auto-discovers models from the
+configured OpenAI-compatible endpoint.
+
+## Usage
+
+```bash
+make setup                       # one-time: uv + .venv (control node only)
+make fetch                       # download the pinned opencode binary (needs internet)
+```
+
+The binary is **not** committed (too large for git); `make fetch` downloads it
+into `roles/opencode/files/opencode` based on `opencode_version`. Run it on a
+machine with internet, then you can deploy offline. (`make deploy`/`check`/`test`
+fail with a reminder if the binary is missing.)
+
+1. Edit `inventory/hosts.yml` — add your hosts and the SSH user.
+2. Edit `group_vars/workstations.yml`:
+   - `opencode_provider_url` — your local LLM endpoint (models are auto-discovered
+     by the bundled local-model plugin)
+   - `opencode_users` — the accounts that get opencode configured
+3. Deploy:
+
+```bash
+make check        # dry-run (--check --diff)
+make deploy       # apply (HOSTS=group to limit)
+```
+
+That's it. Each listed user runs `opencode` from PATH; their
+`~/.config/opencode/` has the config, commands, skills, and plugins.
+
+## Extending
+
+- **New plugin** → drop a file/folder into `roles/opencode/files/plugins/`.
+- **New command/skill** → drop into `roles/opencode/files/{commands,skills}/`.
+- **Upgrade opencode** → bump `opencode_version` in
+  `roles/opencode/defaults/main.yml`, then `make fetch` to pull the new binary.
+
+No task edits needed for any of these.
+
+## Other targets
+
+```bash
+make lint         # yamllint + ansible-lint
+make test         # Molecule install scenario (needs Docker)
+make uninstall    # remove the binary + each user's ~/.config/opencode
+```
 
 ## Requirements
 
-- Ansible ≥ 2.12 on the control machine
-- Linux x86_64 targets
-- [uv](https://docs.astral.sh/uv/) (only needed to run tests)
-
-## Quick start
-
-**1. Install dependencies (once)**
-
-```bash
-make setup
-```
-
-**2. Download the bundle** — needs internet, run once per version
-
-```bash
-make fetch                     # version from defaults/main.yml
-make fetch VERSION=1.4.3       # pin a specific version
-```
-
-Produces `opencode-bundle-{version}.tar.gz` at the project root (gitignored). The bundle contains the binary, npm provider packages (`@ai-sdk/openai-compatible`, version auto-resolved from the opencode release date), and the models cache. It also writes `group_vars/all.yml` with the pinned version and SHA-256 checksum.
-
-**3. Configure your inventory**
-
-```yaml
-# inventory/hosts.yml
-all:
-  hosts:
-    alice-laptop:
-      ansible_host: 192.168.1.10
-      ansible_user: alice
-```
-
-```yaml
-# inventory/host_vars/alice-laptop.yml
-opencode_user:         alice
-opencode_provider_url: "http://your-ai-server/v1"
-opencode_models:
-  - name: "deepseek-v32"
-  - name: "qwen3-coder"
-opencode_default_model: "deepseek-v32"
-```
-
-**4. Deploy**
-
-```bash
-make deploy
-```
-
-## Operations
-
-**Deploy to a specific host or group**
-```bash
-make deploy HOSTS=alice-laptop
-make deploy HOSTS=workstations
-```
-
-**Upgrade the binary**
-```bash
-make upgrade VERSION=1.4.3
-```
-Fetches the new binary and deploys. Previous binary is saved as `opencode.bak.<old_version>`.
-
-**Update provider or models only** — edit vars in your inventory, then:
-```bash
-make deploy
-```
-Binary is not touched. Only `opencode.json` is rewritten.
-
-**Update bundled npm packages** (e.g. after a security advisory)
-```bash
-make refresh-deps
-```
-
-**Override the auto-resolved `@ai-sdk/openai-compatible` version**
-```bash
-./fetch-binaries.sh --sdk-version 2.0.41
-```
-By default `fetch-binaries.sh` resolves the correct sdk version automatically from the npm registry based on the opencode release date. Use `--sdk-version` only if you need to override it.
-
-**Uninstall**
-```bash
-make uninstall
-make uninstall HOSTS=alice-laptop
-```
-Removes `/usr/local/bin/opencode` and `/opt/opencode/`.
-
-`~/.config/opencode/` is left entirely intact — the user may have edited `opencode.json` or added plugins after the initial deploy. If you reinstall, the existing config is backed up with a timestamp before being overwritten.
-
-**Dry-run**
-```bash
-make check
-```
-
-## Key variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `opencode_version` | `1.4.3` | Version to install |
-| `opencode_user` | `{{ ansible_env.SUDO_USER \| default(ansible_user_id) }}` | User to deploy config for |
-| `opencode_provider_url` | `http://localhost:8000/v1` | AI provider endpoint |
-| `opencode_models` | `[{name: deepseek-v32}]` | Models to expose |
-| `opencode_default_model` | `deepseek-v32` | Active model |
-| `opencode_install_dir` | `/opt/opencode` | Binary + cache location |
-| `opencode_bin_wrapper` | `/usr/local/bin/opencode` | Entry point for users |
-| `opencode_keep_backup` | `true` | Keep `opencode.bak.*` on upgrade |
-| `opencode_verify_checksum` | `true` | Verify SHA-256 before install |
-
-All defaults are in `roles/opencode/defaults/main.yml`.
-
-## Tests
-
-```bash
-make test             # all Molecule scenarios (requires Docker)
-make test-install     # fresh install
-make test-upgrade     # 1.3.5 → 1.4.3 upgrade
-make test-config      # config update without binary change
-make test-uninstall   # uninstall leaves config intact
-```
-
-Molecule scenarios in `tests/molecule/` use Docker and run each scenario in an isolated container.
-
-## Plugins
-
-opencode can be extended with JavaScript plugins placed in `~/.config/opencode/plugins/` (global) or `.opencode/plugins/` (per project). No additional packages needed for plain JS plugins.
-
-For TypeScript plugins that use `import type { Plugin } from "@opencode-ai/plugin"`, add it to `~/.config/opencode/package.json` — opencode runs `bun install` at startup to install it. On air-gapped machines, pre-install it alongside the binary by adding it to the bundle.
-
-## Config
-
-opencode merges config files — later sources override earlier ones for conflicting keys. The role writes to `~/.config/opencode/opencode.json` (the user's global config). Users can add personal preferences (theme, keybindings) to the same file without conflict. A timestamped backup is created only when the config content actually changes.
-
-To override per project, add `opencode.json` in the project directory — it takes precedence over the global config.
+- Control node: `uv` (the Makefile bootstraps it), Ansible ≥ 2.12.
+- Targets: Linux x86_64, SSH + sudo. No internet required.

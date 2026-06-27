@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-# NODE_PATH and OPENCODE_MODELS_URL point the binary at its bundled packages
-# and offline models cache — without these the binary would look on the internet.
-export NODE_PATH="{{ opencode_install_dir }}/cache/node_modules"
-export OPENCODE_MODELS_URL="file://{{ opencode_install_dir }}/cache"
-exec "{{ opencode_install_dir }}/bin/opencode" "$@"
