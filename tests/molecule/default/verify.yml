@@ -35,6 +35,13 @@
       failed_when: not _paths.stat.exists
       loop: "{{ ['alice', 'bob'] | product(_expected) | list }}"
 
+    - name: Plugin runtime staged in ~/.opencode for each user
+      ansible.builtin.stat:
+        path: "/home/{{ item }}/.opencode/node_modules/@opencode-ai/plugin/package.json"
+      register: _deps
+      failed_when: not _deps.stat.exists
+      loop: [alice, bob]
+
     - name: Config is owned by the user
       ansible.builtin.stat:
         path: "{{ _config }}"

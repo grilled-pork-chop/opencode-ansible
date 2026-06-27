@@ -15,15 +15,15 @@
         database: passwd
       when: opencode_users | length > 0
 
-    - name: Remove per-user opencode config
+    - name: Remove per-user opencode config and plugin runtime
       ansible.builtin.file:
-        path: "{{ ansible_facts.getent_passwd[item][4] }}/.config/opencode"
+        path: "{{ ansible_facts.getent_passwd[item.0][4] }}/{{ item.1 }}"
         state: absent
-      loop: "{{ opencode_users }}"
-      when: item in ansible_facts.getent_passwd
+      loop: "{{ opencode_users | product(['.config/opencode', '.opencode']) | list }}"
+      when: item.0 in ansible_facts.getent_passwd
 
     - name: Summary
       ansible.builtin.debug:
         msg:
           - "Removed: {{ opencode_bin_path }}"
-          - "Removed: ~/.config/opencode for {{ opencode_users | join(', ') | default('(none)', true) }}"
+          - "Removed: ~/.config/opencode and ~/.opencode for {{ opencode_users | join(', ') | default('(none)', true) }}"

@@ -4,10 +4,12 @@ Install a pinned, self-contained **opencode** for a chosen set of users across
 your Linux fleet — fully offline. The repo ships everything it deploys: the
 binary and the per-user payload (config + commands + skills + plugins).
 
-No Node.js, no bundle pipeline, no internet on the targets. Ansible just:
+No internet on the targets. Ansible just:
 
-1. copies the binary to `/usr/local/bin/opencode` (on PATH for everyone), and
-2. writes the payload into each listed user's `~/.config/opencode/`.
+1. copies the binary to `/usr/local/bin/opencode` (on PATH for everyone),
+2. writes the payload into each listed user's `~/.config/opencode/`, and
+3. pre-stages opencode's plugin runtime (`@opencode-ai/plugin` + deps) in each
+   user's `~/.opencode/` so it never tries to `npm install` at startup.
 
 ## Layout
 
@@ -15,10 +17,11 @@ No Node.js, no bundle pipeline, no internet on the targets. Ansible just:
 roles/opencode/
 ├── defaults/main.yml          # version + provider/model + opencode_users
 ├── files/
-│   ├── opencode               # the binary            → /usr/local/bin/opencode
-│   ├── commands/              # slash commands         ┐
-│   ├── skills/                # skills                 ├─ → ~/.config/opencode/
-│   └── plugins/               # plugins (local-model)  ┘
+│   ├── opencode               # the binary (make fetch)   → /usr/local/bin/opencode
+│   ├── opencode-home.tar.gz   # plugin runtime (make fetch) → ~/.opencode/
+│   ├── commands/              # slash commands            ┐
+│   ├── skills/                # skills                    ├─ → ~/.config/opencode/
+│   └── plugins/               # plugins (local-model)     ┘
 ├── templates/
 │   └── opencode.jsonc.j2      # config (provider URL substituted)
 └── tasks/{main,deploy_user}.yml
@@ -33,13 +36,14 @@ configured OpenAI-compatible endpoint.
 
 ```bash
 make setup                       # one-time: uv + .venv (control node only)
-make fetch                       # download the pinned opencode binary (needs internet)
+make fetch                       # download binary + build plugin deps (needs internet + npm)
 ```
 
-The binary is **not** committed (too large for git); `make fetch` downloads it
-into `roles/opencode/files/opencode` based on `opencode_version`. Run it on a
-machine with internet, then you can deploy offline. (`make deploy`/`check`/`test`
-fail with a reminder if the binary is missing.)
+The binary and the plugin runtime are **not** committed (too large for git);
+`make fetch` downloads the binary and builds `opencode-home.tar.gz`
+(`@opencode-ai/plugin@<opencode_version>`) into `roles/opencode/files/`. Run it on
+a machine with internet + `npm`, then deploy offline. (`make deploy`/`check`/`test`
+fail with a reminder if the artifacts are missing.)
 
 1. Edit `inventory/hosts.yml` — add your hosts and the SSH user.
 2. Edit `group_vars/workstations.yml`:
@@ -61,7 +65,9 @@ That's it. Each listed user runs `opencode` from PATH; their
 - **New plugin** → drop a file/folder into `roles/opencode/files/plugins/`.
 - **New command/skill** → drop into `roles/opencode/files/{commands,skills}/`.
 - **Upgrade opencode** → bump `opencode_version` in
-  `roles/opencode/defaults/main.yml`, then `make fetch` to pull the new binary.
+  `roles/opencode/defaults/main.yml`, then `make fetch` (re-pulls the binary and
+  rebuilds the matching plugin runtime). On targets, clear `~/.opencode/node_modules`
+  to force the new runtime in (the staging step is `creates:`-guarded).
 
 No task edits needed for any of these.
 
@@ -92,10 +98,11 @@ You can also open a live shell in the container:
 ```bash
 make lint         # yamllint + ansible-lint
 make test         # Molecule install scenario (needs Docker)
-make uninstall    # remove the binary + each user's ~/.config/opencode
+make uninstall    # remove the binary + each user's ~/.config/opencode and ~/.opencode
 ```
 
 ## Requirements
 
+- Build machine (runs `make fetch`): internet + `npm`.
 - Control node: `uv` (the Makefile bootstraps it), Ansible ≥ 2.12.
 - Targets: Linux x86_64, SSH + sudo. No internet required.

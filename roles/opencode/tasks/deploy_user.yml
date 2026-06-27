@@ -8,8 +8,9 @@
     fail_msg: "User '{{ opencode_account }}' not found in passwd on {{ inventory_hostname }}."
     quiet: true
 
-- name: "Resolve config dir for {{ opencode_account }}"
+- name: "Resolve home + config dir for {{ opencode_account }}"
   ansible.builtin.set_fact:
+    opencode_user_home: "{{ ansible_facts.getent_passwd[opencode_account][4] }}"
     opencode_user_config: "{{ ansible_facts.getent_passwd[opencode_account][4] }}/.config/opencode"
 
 - name: "Ensure {{ opencode_user_config }} exists"
@@ -40,4 +41,25 @@
     - commands
     - skills
     - plugins
+  tags: [plugins]
+
+# opencode resolves its plugin runtime (@opencode-ai/plugin + deps) from
+# ~/.opencode/node_modules and would `npm install` it at startup — which hangs
+# on an air-gapped host. Pre-stage it so nothing is fetched at runtime.
+- name: "Ensure ~/.opencode exists for {{ opencode_account }}"
+  ansible.builtin.file:
+    path: "{{ opencode_user_home }}/.opencode"
+    state: directory
+    owner: "{{ opencode_account }}"
+    group: "{{ opencode_account }}"
+    mode: "0755"
+  tags: [plugins]
+
+- name: "Stage ~/.opencode plugin runtime for {{ opencode_account }}"
+  ansible.builtin.unarchive:
+    src: opencode-home.tar.gz
+    dest: "{{ opencode_user_home }}/.opencode"
+    owner: "{{ opencode_account }}"
+    group: "{{ opencode_account }}"
+    creates: "{{ opencode_user_home }}/.opencode/node_modules/@opencode-ai/plugin"
   tags: [plugins]

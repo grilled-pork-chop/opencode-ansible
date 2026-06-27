@@ -17,8 +17,9 @@ tests/molecule/*/tmp/
 *.swp
 *.swo
 
-# opencode binary — fetched via `make fetch`, too large for git
+# binary + plugin runtime — fetched via `make fetch`, too large for git
 roles/opencode/files/opencode
+roles/opencode/files/opencode-home.tar.gz
 
 # local inspection copy exported by `make try`
 tmp_test/
