@@ -19,3 +19,6 @@ tests/molecule/*/tmp/
 
 # opencode binary — fetched via `make fetch`, too large for git
 roles/opencode/files/opencode
+
+# local inspection copy exported by `make try`
+tmp_test/

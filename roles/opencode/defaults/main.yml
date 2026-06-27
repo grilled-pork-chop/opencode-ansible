@@ -1,5 +1,5 @@
 ---
-# Pinned opencode version. Bump this and replace files/opencode to upgrade.
+# Pinned opencode version. Bump this and run `make fetch` to upgrade.
 # (Asserted at runtime against `opencode --version`.)
 opencode_version: "1.17.11"
 

@@ -65,6 +65,28 @@ That's it. Each listed user runs `opencode` from PATH; their
 
 No task edits needed for any of these.
 
+## Try it locally (no root, no changes to your machine)
+
+Isolation lives in the test harness, not the role. `make try` runs the **real
+role** inside a throwaway Docker container, then copies the result out to
+`./tmp_test/` so you can browse exactly what gets installed:
+
+```bash
+make fetch        # if you haven't already
+make try          # run the role in a container, export to ./tmp_test (needs Docker)
+
+find tmp_test                                   # the installed tree, locally
+./tmp_test/usr/local/bin/opencode --version
+make clean        # destroy the container and remove ./tmp_test
+```
+
+`./tmp_test` ends up holding the binary and `home/alice/.config/opencode/`
+(opencode.jsonc, commands, skills, plugins) — the real output of the role.
+You can also open a live shell in the container:
+`cd tests && uv run molecule login`.
+
+`make test` runs the same role plus idempotence + automated checks, then destroys.
+
 ## Other targets
 
 ```bash
