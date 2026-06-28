@@ -30,7 +30,7 @@
     mode: "0644"
   tags: [config]
 
-- name: "Deploy commands/skills/plugins for {{ opencode_account }}"
+- name: "Deploy commands/plugins/instructions for {{ opencode_account }}"
   ansible.builtin.copy:
     src: "{{ item }}/"
     dest: "{{ opencode_user_config }}/{{ item }}/"
@@ -39,8 +39,8 @@
     mode: preserve
   loop:
     - commands
-    - skills
     - plugins
+    - instructions
   tags: [plugins]
 
 # opencode resolves its plugin runtime (@opencode-ai/plugin + deps) from

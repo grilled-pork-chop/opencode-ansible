@@ -10,7 +10,12 @@ opencode_bin_path: "/usr/local/bin/opencode"
 # Models are auto-discovered by the bundled local-model plugin — no model var.
 opencode_provider_url: "http://localhost:8000/v1"
 
-# Accounts that get the per-user payload (config + commands + skills + plugins)
+# Skill-marketplace API endpoint. Passed to the opencode-marketplace plugin as
+# its api_endpoint option. The plugin appends /api/v1 itself, so give the bare
+# host[:port] (no path). Override per fleet in group_vars/.
+opencode_marketplace_url: "http://localhost:8000"
+
+# Accounts that get the per-user payload (config + commands + instructions + plugins)
 # in their ~/.config/opencode/. Declare the real list in group_vars/.
 # Example:
 #   opencode_users:

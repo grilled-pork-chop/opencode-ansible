@@ -7,13 +7,16 @@
   vars:
     opencode_version: "1.17.11"
     opencode_provider_url: "http://10.0.0.1:8000/v1"
+    opencode_marketplace_url: "http://10.0.0.2:9000"
     _config: "/home/alice/.config/opencode/opencode.jsonc"
     _expected:
       - opencode.jsonc
       - commands/commit.md
-      - skills
       - plugins/opencode-local.ts
       - plugins/opencode-local-model
+      - plugins/opencode-marketplace.ts
+      - plugins/opencode-marketplace
+      - instructions/AGENTS.md
 
   tasks:
     - name: Binary installed and executable
@@ -59,3 +62,17 @@
           - opencode_provider_url in (_cfg_raw.content | b64decode)
           - "'__PROVIDER_URL__' not in (_cfg_raw.content | b64decode)"
         msg: "opencode.jsonc was not templated correctly"
+
+    - name: Assert instructions key references the deployed AGENTS.md
+      ansible.builtin.assert:
+        that:
+          - "'\"instructions\"' in (_cfg_raw.content | b64decode)"
+          - "'./instructions/AGENTS.md' in (_cfg_raw.content | b64decode)"
+        msg: "opencode.jsonc is missing the instructions key"
+
+    - name: Assert marketplace plugin endpoint substituted
+      ansible.builtin.assert:
+        that:
+          - "'opencode-marketplace' in (_cfg_raw.content | b64decode)"
+          - opencode_marketplace_url in (_cfg_raw.content | b64decode)
+        msg: "opencode.jsonc marketplace plugin endpoint was not templated correctly"

@@ -5,7 +5,7 @@
   // Rules are matched by glob; the LAST matching rule wins, so put the
   // catch-all "*" first and the more specific (and deny) rules after.
   "$schema": "https://opencode.ai/config.json",
-
+  "instructions": ["./instructions/AGENTS.md"],
   "permission": {
     // ---------------------------------------------------------------
     // Read-only tools: safe to run without approval
@@ -187,5 +187,11 @@
       // local-model plugin from the endpoint above — left empty on purpose.
       "models": {}
     }
-  }
+  },
+  // Marketplace plugin: skill-registry endpoint passed as plugin options
+  // (the [name, options] tuple form). Templated from opencode_marketplace_url
+  // so each fleet can point at its own server.
+  "plugin": [
+    ["opencode-marketplace", { "api_endpoint": "{{ opencode_marketplace_url }}" }]
+  ]
 }

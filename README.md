@@ -2,7 +2,7 @@
 
 Install a pinned, self-contained **opencode** for a chosen set of users across
 your Linux fleet — fully offline. The repo ships everything it deploys: the
-binary and the per-user payload (config + commands + skills + plugins).
+binary and the per-user payload (config + commands + instructions + plugins).
 
 No internet on the targets. Ansible just:
 
@@ -20,7 +20,7 @@ roles/opencode/
 │   ├── opencode               # the binary (make fetch)   → /usr/local/bin/opencode
 │   ├── opencode-home.tar.gz   # plugin runtime (make fetch) → ~/.opencode/
 │   ├── commands/              # slash commands            ┐
-│   ├── skills/                # skills                    ├─ → ~/.config/opencode/
+│   ├── instructions/          # AGENTS.md guidance        ├─ → ~/.config/opencode/
 │   └── plugins/               # plugins (local-model)     ┘
 ├── templates/
 │   └── opencode.jsonc.j2      # config (provider URL substituted)
@@ -58,12 +58,12 @@ make deploy       # apply (HOSTS=group to limit)
 ```
 
 That's it. Each listed user runs `opencode` from PATH; their
-`~/.config/opencode/` has the config, commands, skills, and plugins.
+`~/.config/opencode/` has the config, commands, instructions, and plugins.
 
 ## Extending
 
 - **New plugin** → drop a file/folder into `roles/opencode/files/plugins/`.
-- **New command/skill** → drop into `roles/opencode/files/{commands,skills}/`.
+- **New command** → drop into `roles/opencode/files/commands/`.
 - **Upgrade opencode** → bump `opencode_version` in
   `roles/opencode/defaults/main.yml`, then `make fetch` (re-pulls the binary and
   rebuilds the matching plugin runtime). On targets, clear `~/.opencode/node_modules`
@@ -87,7 +87,7 @@ make clean        # destroy the container and remove ./tmp_test
 ```
 
 `./tmp_test` ends up holding the binary and `home/alice/.config/opencode/`
-(opencode.jsonc, commands, skills, plugins) — the real output of the role.
+(opencode.jsonc, commands, instructions, plugins) — the real output of the role.
 You can also open a live shell in the container:
 `cd tests && uv run molecule login`.
 
