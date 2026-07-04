@@ -12,13 +12,11 @@
     _expected:
       - opencode.jsonc
       - commands/commit.md
-      - commands/opsx-propose.md
       - plugins/opencode-local.ts
       - plugins/opencode-local-model
       - plugins/opencode-marketplace.ts
       - plugins/opencode-marketplace
       - instructions/AGENTS.md
-      - skills/openspec-propose/SKILL.md
 
   tasks:
     - name: Binary installed and executable
@@ -47,7 +45,7 @@
       failed_when: not _deps.stat.exists
       loop: [alice, bob]
 
-    - name: Dependencies staged in ~/.config/opencode for each user
+    - name: Plugin runtime staged in ~/.config/opencode for each user
       ansible.builtin.stat:
         path: "/home/{{ item }}/.config/opencode/node_modules/@opencode-ai/plugin/package.json"
       register: _config_deps

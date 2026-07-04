@@ -25,7 +25,7 @@
     success_msg: "opencode {{ opencode_version_check.stdout }} installed at {{ opencode_bin_path }}."
   tags: [binary]
 
-# 2. Per-user payload (config + commands + instructions + plugins + skills) in ~/.config/opencode.
+# 2. Per-user payload (config + commands + instructions + plugins) in ~/.config/opencode.
 - name: Read passwd database to resolve user homes
   ansible.builtin.getent:
     database: passwd

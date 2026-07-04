@@ -30,7 +30,7 @@
     mode: "0644"
   tags: [config]
 
-- name: "Deploy commands/plugins/instructions/skills for {{ opencode_account }}"
+- name: "Deploy commands/plugins/instructions for {{ opencode_account }}"
   ansible.builtin.copy:
     src: "{{ item }}/"
     dest: "{{ opencode_user_config }}/{{ item }}/"
@@ -41,7 +41,6 @@
     - commands
     - plugins
     - instructions
-    - skills
   tags: [plugins]
 
 # opencode resolves its plugin runtime (@opencode-ai/plugin + deps) from
@@ -65,9 +64,10 @@
     creates: "{{ opencode_user_home }}/.opencode/node_modules/@opencode-ai/plugin"
   tags: [plugins]
 
-# The OpenSpec skills/commands resolve their node runtime from the config dir,
-# so stage the same dependency bundle into ~/.config/opencode as well.
-- name: "Stage ~/.config/opencode dependencies for {{ opencode_account }}"
+# Also stage the same runtime alongside the config-dir plugins, so their
+# `@opencode-ai/plugin` imports resolve whether opencode looks in ~/.opencode
+# or walks up from ~/.config/opencode/plugins/.
+- name: "Stage ~/.config/opencode plugin runtime for {{ opencode_account }}"
   ansible.builtin.unarchive:
     src: opencode-dependencies.tar.gz
     dest: "{{ opencode_user_config }}"
