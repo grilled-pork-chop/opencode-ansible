@@ -7,7 +7,7 @@ UV               := uv run
 # Binary + plugin deps are fetched, not committed (too large for git).
 OPENCODE_REPO    ?= sst/opencode
 BINARY           := roles/opencode/files/opencode
-DEPS_ARCHIVE     := roles/opencode/files/opencode-home.tar.gz
+DEPS_ARCHIVE     := roles/opencode/files/opencode-dependencies.tar.gz
 OPENCODE_VERSION := $(shell sed -n 's/^opencode_version:[[:space:]]*"\(.*\)"/\1/p' roles/opencode/defaults/main.yml)
 OPENCODE_URL     := https://github.com/$(OPENCODE_REPO)/releases/download/v$(OPENCODE_VERSION)/opencode-linux-x64.tar.gz
 

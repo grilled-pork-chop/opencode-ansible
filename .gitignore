@@ -19,7 +19,7 @@ tests/molecule/*/tmp/
 
 # binary + plugin runtime — fetched via `make fetch`, too large for git
 roles/opencode/files/opencode
-roles/opencode/files/opencode-home.tar.gz
+roles/opencode/files/opencode-dependencies.tar.gz
 
 # local inspection copy exported by `make try`
 tmp_test/

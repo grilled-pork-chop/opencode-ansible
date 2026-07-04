@@ -1,108 +1,57 @@
 # opencode-ansible
 
-Install a pinned, self-contained **opencode** for a chosen set of users across
-your Linux fleet — fully offline. The repo ships everything it deploys: the
-binary and the per-user payload (config + commands + instructions + plugins).
+Install a pinned, self-contained **opencode** for a set of users across your
+Linux fleet — fully offline. Ansible copies the binary to `/usr/local/bin`,
+writes each user's `~/.config/opencode/` payload (config, commands, instructions,
+plugins, skills), and pre-stages the dependency runtime so nothing is fetched at
+startup.
 
-No internet on the targets. Ansible just:
+## Versions
 
-1. copies the binary to `/usr/local/bin/opencode` (on PATH for everyone),
-2. writes the payload into each listed user's `~/.config/opencode/`, and
-3. pre-stages opencode's plugin runtime (`@opencode-ai/plugin` + deps) in each
-   user's `~/.opencode/` so it never tries to `npm install` at startup.
+| Component | Version | Notes |
+|---|---|---|
+| opencode | `1.17.11` | set in `roles/opencode/defaults/main.yml`; `make fetch` to upgrade |
+| `@opencode-ai/plugin` + `sdk` | `1.17.11` | bundled in `opencode-dependencies.tar.gz` (built by `make fetch`) |
+| `openspec` CLI | `1.5.0` | required on targets for the `opsx-*` / `openspec-*` skills — **not** bundled; install separately |
+| Node / npm | `24.x` / `11.x` | build machine only (`make fetch`) |
 
-## Layout
-
-```
-roles/opencode/
-├── defaults/main.yml          # version + provider/model + opencode_users
-├── files/
-│   ├── opencode               # the binary (make fetch)   → /usr/local/bin/opencode
-│   ├── opencode-home.tar.gz   # plugin runtime (make fetch) → ~/.opencode/
-│   ├── commands/              # slash commands            ┐
-│   ├── instructions/          # AGENTS.md guidance        ├─ → ~/.config/opencode/
-│   └── plugins/               # plugins (local-model)     ┘
-├── templates/
-│   └── opencode.jsonc.j2      # config (provider URL substituted)
-└── tasks/{main,deploy_user}.yml
-```
-
-The config (`opencode.jsonc`) is air-gap hardened: `autoupdate:false`,
-websearch/webfetch denied, a safe-by-default bash allow/ask/deny policy. The
-bundled **local-model-discovery** plugin auto-discovers models from the
-configured OpenAI-compatible endpoint.
-
-## Usage
+## Quickstart
 
 ```bash
-make setup                       # one-time: uv + .venv (control node only)
-make fetch                       # download binary + build plugin deps (needs internet + npm)
+make setup        # one-time: uv + .venv (control node)
+make fetch        # download binary + build deps (needs internet + npm)
 ```
 
-The binary and the plugin runtime are **not** committed (too large for git);
-`make fetch` downloads the binary and builds `opencode-home.tar.gz`
-(`@opencode-ai/plugin@<opencode_version>`) into `roles/opencode/files/`. Run it on
-a machine with internet + `npm`, then deploy offline. (`make deploy`/`check`/`test`
-fail with a reminder if the artifacts are missing.)
-
-1. Edit `inventory/hosts.yml` — add your hosts and the SSH user.
-2. Edit `group_vars/workstations.yml`:
-   - `opencode_provider_url` — your local LLM endpoint (models are auto-discovered
-     by the bundled local-model plugin)
-   - `opencode_users` — the accounts that get opencode configured
-3. Deploy:
+Then edit `inventory/hosts.yml` (hosts + SSH user) and
+`group_vars/workstations.yml` (`opencode_provider_url`, `opencode_users`), and:
 
 ```bash
 make check        # dry-run (--check --diff)
 make deploy       # apply (HOSTS=group to limit)
 ```
 
-That's it. Each listed user runs `opencode` from PATH; their
-`~/.config/opencode/` has the config, commands, instructions, and plugins.
+The binary and deps tarball are not committed (too large); run `make fetch` on a
+machine with internet, then deploy offline.
 
 ## Extending
 
-- **New plugin** → drop a file/folder into `roles/opencode/files/plugins/`.
-- **New command** → drop into `roles/opencode/files/commands/`.
-- **Upgrade opencode** → bump `opencode_version` in
-  `roles/opencode/defaults/main.yml`, then `make fetch` (re-pulls the binary and
-  rebuilds the matching plugin runtime). On targets, clear `~/.opencode/node_modules`
-  to force the new runtime in (the staging step is `creates:`-guarded).
+Drop files into `roles/opencode/files/{plugins,commands,skills}/` — no task edits
+needed. To upgrade opencode, bump `opencode_version`, run `make fetch`, and clear
+`~/.opencode/node_modules` + `~/.config/opencode/node_modules` on targets.
 
-No task edits needed for any of these.
-
-## Try it locally (no root, no changes to your machine)
-
-Isolation lives in the test harness, not the role. `make try` runs the **real
-role** inside a throwaway Docker container, then copies the result out to
-`./tmp_test/` so you can browse exactly what gets installed:
+## Make targets
 
 ```bash
-make fetch        # if you haven't already
-make try          # run the role in a container, export to ./tmp_test (needs Docker)
-
-find tmp_test                                   # the installed tree, locally
-./tmp_test/usr/local/bin/opencode --version
-make clean        # destroy the container and remove ./tmp_test
-```
-
-`./tmp_test` ends up holding the binary and `home/alice/.config/opencode/`
-(opencode.jsonc, commands, instructions, plugins) — the real output of the role.
-You can also open a live shell in the container:
-`cd tests && uv run molecule login`.
-
-`make test` runs the same role plus idempotence + automated checks, then destroys.
-
-## Other targets
-
-```bash
+make try          # run the role in Docker, export result to ./tmp_test (needs Docker)
+make test         # Molecule: converge + idempotence + verify (needs Docker)
 make lint         # yamllint + ansible-lint
-make test         # Molecule install scenario (needs Docker)
-make uninstall    # remove the binary + each user's ~/.config/opencode and ~/.opencode
+make uninstall    # remove the binary + each user's payload
+make clean        # destroy container, remove ./tmp_test
 ```
 
 ## Requirements
 
-- Build machine (runs `make fetch`): internet + `npm`.
-- Control node: `uv` (the Makefile bootstraps it), Ansible ≥ 2.12.
-- Targets: Linux x86_64, SSH + sudo. No internet required.
+- Build machine (`make fetch`): internet + Node/npm.
+- Control node: `uv` (bootstrapped by the Makefile), Ansible ≥ 2.12.
+- Targets: Linux x86_64, SSH + sudo, no internet. `openspec` CLI on PATH only if
+  you use the OpenSpec commands/skills.
