@@ -1,0 +1,3 @@
+---
+# Fresh install: just the shared host prep (users + alice's seeded collisions).
+- import_playbook: ../../resources/prepare_host.yml

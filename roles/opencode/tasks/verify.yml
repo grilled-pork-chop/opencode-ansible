@@ -1,0 +1,25 @@
+---
+# verify — smoke-test the deployed binary
+#
+# Runs `opencode --version` and asserts the output contains the pinned version
+# string. If the binary is missing, corrupted, or the wrong version was
+# committed, the task fails immediately with a clear message. A summary of the
+# deployment is printed on success.
+
+- name: "Verify installed version"
+  ansible.builtin.command:
+    cmd: "{{ opencode_bin_path }} --version"
+  register: opencode__smoke
+  changed_when: false
+  failed_when: opencode_version not in opencode__smoke.stdout
+  tags: [opencode, verify]
+
+- name: "Summary"
+  ansible.builtin.debug:
+    msg:
+      - "✓ opencode {{ opencode__smoke.stdout | trim }}"
+      - "  Binary     : {{ opencode_bin_path }}"
+      - "  Provider   : {{ opencode_provider_url }}"
+      - "  Marketplace: {{ opencode_marketplace_url }}"
+      - "  Primary user: {{ opencode_user | default('(none)', true) }}"
+  tags: [opencode, verify]

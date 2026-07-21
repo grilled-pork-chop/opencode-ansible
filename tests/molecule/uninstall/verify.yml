@@ -1,0 +1,23 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: System binary is gone
+      ansible.builtin.stat:
+        path: /usr/local/bin/opencode
+      register: _bin
+      failed_when: _bin.stat.exists
+
+    # Current uninstall is intentionally destructive to the user payload
+    # (unlike some deploys that preserve it) — assert both dirs are removed.
+    - name: The primary user's opencode dirs are removed
+      ansible.builtin.stat:
+        path: "/home/bob/{{ item }}"
+      register: _dirs
+      failed_when: _dirs.stat.exists
+      loop:
+        - .config/opencode
+        - .opencode

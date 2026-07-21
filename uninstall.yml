@@ -1,4 +1,8 @@
 ---
+# Remove the system binary and the primary user's payload.
+# opencode_bin_path falls back to its default here because this playbook does not
+# apply the role (so role defaults are not in scope); opencode_user comes from the
+# inventory / host_vars as usual.
 - name: Uninstall opencode
   hosts: all
   become: true
@@ -7,23 +11,25 @@
   tasks:
     - name: Remove the system binary
       ansible.builtin.file:
-        path: "{{ opencode_bin_path }}"
+        path: "{{ opencode_bin_path | default('/usr/local/bin/opencode') }}"
         state: absent
 
-    - name: Read passwd database to resolve user homes
+    - name: Read passwd database to resolve the user's home
       ansible.builtin.getent:
         database: passwd
-      when: opencode_users | length > 0
+      when: opencode_user != ""
 
-    - name: Remove per-user opencode config and plugin runtime
+    - name: Remove the primary user's opencode config and plugin runtime
       ansible.builtin.file:
-        path: "{{ ansible_facts.getent_passwd[item.0][4] }}/{{ item.1 }}"
+        path: "{{ ansible_facts.getent_passwd[opencode_user][4] }}/{{ item }}"
         state: absent
-      loop: "{{ opencode_users | product(['.config/opencode', '.opencode']) | list }}"
-      when: item.0 in ansible_facts.getent_passwd
+      loop:
+        - .config/opencode
+        - .opencode
+      when:
+        - opencode_user != ""
+        - opencode_user in ansible_facts.getent_passwd
 
     - name: Summary
       ansible.builtin.debug:
-        msg:
-          - "Removed: {{ opencode_bin_path }}"
-          - "Removed: ~/.config/opencode and ~/.opencode for {{ opencode_users | join(', ') | default('(none)', true) }}"
+        msg: "Removed opencode for {{ opencode_user | default('(none)', true) }}"

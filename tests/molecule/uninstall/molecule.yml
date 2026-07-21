@@ -1,0 +1,22 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+driver:
+  name: docker
+platforms:
+  - name: opencode-uninstall
+    image: geerlingguy/docker-ubuntu2204-ansible
+    pre_build_image: true
+    command: /bin/bash
+    tty: true
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      opencode-uninstall:
+        ansible_python_interpreter: /usr/bin/python3
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../roles"
+verifier:
+  name: ansible

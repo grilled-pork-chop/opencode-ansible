@@ -1,0 +1,46 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    opencode_version: "1.17.11"
+    _new_provider_url: "http://10.0.0.1:8000/v1"
+    _old_provider_url: "http://original-server:8000/v1"
+    _config: "/home/bob/.config/opencode/opencode.jsonc"
+
+  tasks:
+    - name: Binary still reports the pinned version
+      ansible.builtin.command: /usr/local/bin/opencode --version
+      register: _ver
+      changed_when: false
+      failed_when: opencode_version not in _ver.stdout
+
+    - name: No upgrade backup was made (binary untouched by a config-only change)
+      ansible.builtin.find:
+        paths: /usr/local/bin
+        patterns: "opencode.bak.*"
+      register: _bin_bak
+      failed_when: _bin_bak.matched > 0
+
+    - name: Config now carries the NEW provider URL, not the old one
+      ansible.builtin.slurp:
+        src: "{{ _config }}"
+      register: _cfg_raw
+
+    - name: Assert the URL was updated
+      ansible.builtin.assert:
+        that:
+          - _new_provider_url in (_cfg_raw.content | b64decode)
+          - _old_provider_url not in (_cfg_raw.content | b64decode)
+        msg: "opencode.jsonc did not pick up the changed provider URL"
+
+    # A managed -> managed re-render deliberately does NOT back up (the MANAGED
+    # marker is present), so URL bumps must not pile up backups.
+    - name: No opencode.jsonc backup pile-up on a managed re-render
+      ansible.builtin.find:
+        paths: /home/bob/.config/opencode
+        patterns: "opencode.jsonc.*.bak"
+      register: _jsonc_bak
+      failed_when: _jsonc_bak.matched > 0

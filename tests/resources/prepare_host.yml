@@ -1,0 +1,59 @@
+---
+# Shared host prep, imported by every scenario's prepare.yml.
+#
+# Creates the two test users and seeds alice's collision cases so the install
+# scenario can prove the role reconciles a pre-existing user install
+# non-destructively. bob stays clean to prove a non-primary user is left
+# untouched. The image (geerlingguy/docker-ubuntu2204-ansible) already ships
+# python3 + sudo, so no apt bootstrap is needed.
+- name: Prepare — test users and collision seeds
+  hosts: all
+  become: false  # container runs as root
+  gather_facts: false
+  tasks:
+    - name: Create test users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        shell: /bin/bash
+        create_home: true
+      loop:
+        - alice
+        - bob
+
+    # Seed the collision cases for alice only (bob stays clean), so the install
+    # verify can prove the role reconciles a pre-existing user install.
+    # copy does not create nested parent dirs, so make them first.
+    - name: Create alice's opencode dirs for the seeds
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: alice
+        group: alice
+        mode: "0755"
+      loop:
+        - /home/alice/.opencode/bin
+        - /home/alice/.config/opencode
+
+    - name: Seed alice's shadowing ~/.opencode/bin/opencode (a real file)
+      ansible.builtin.copy:
+        dest: /home/alice/.opencode/bin/opencode
+        content: "#!/bin/sh\necho user-installed opencode\n"
+        owner: alice
+        group: alice
+        mode: "0755"
+
+    - name: Seed alice's hand-authored opencode.jsonc (no MANAGED marker)
+      ansible.builtin.copy:
+        dest: /home/alice/.config/opencode/opencode.jsonc
+        content: "{ \"theme\": \"my-personal-theme\" }\n"
+        owner: alice
+        group: alice
+        mode: "0644"
+
+    - name: Seed alice's stray opencode.json sibling
+      ansible.builtin.copy:
+        dest: /home/alice/.config/opencode/opencode.json
+        content: "{ \"legacy\": true }\n"
+        owner: alice
+        group: alice
+        mode: "0644"

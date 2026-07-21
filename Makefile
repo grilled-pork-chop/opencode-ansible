@@ -2,6 +2,7 @@ SHELL            := /usr/bin/env bash
 INVENTORY        ?= inventory/hosts.yml
 PLAYBOOK         ?= site.yml
 HOSTS            ?= all
+VERSION          ?=
 UV               := uv run
 
 # Binary + plugin deps are fetched, not committed (too large for git).
@@ -12,7 +13,8 @@ OPENCODE_VERSION := $(shell sed -n 's/^opencode_version:[[:space:]]*"\(.*\)"/\1/
 OPENCODE_URL     := https://github.com/$(OPENCODE_REPO)/releases/download/v$(OPENCODE_VERSION)/opencode-linux-x64.tar.gz
 
 .DEFAULT_GOAL := help
-.PHONY: help setup lock fetch require-artifacts deploy check try uninstall lint test clean
+.PHONY: help setup lock fetch require-artifacts deploy upgrade check try uninstall lint \
+        test test-install test-upgrade test-config test-uninstall clean
 
 help:
 	@printf "\nUsage: make <target>\n\n"
@@ -54,13 +56,19 @@ require-artifacts:
 deploy: require-artifacts ## Deploy opencode. HOSTS=group to limit.
 	$(UV) ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --limit $(HOSTS)
 
+upgrade: ## Bump opencode_version, fetch the new binary, and deploy. VERSION=x.y.z required.
+	@[[ -n "$(VERSION)" ]] || { echo "Usage: make upgrade VERSION=x.y.z" >&2; exit 1; }
+	sed -i 's/^opencode_version:.*/opencode_version: "$(VERSION)"/' roles/opencode/defaults/main.yml
+	$(MAKE) fetch
+	$(MAKE) deploy
+
 check: require-artifacts ## Dry-run (--check --diff)
 	$(UV) ansible-playbook -i $(INVENTORY) $(PLAYBOOK) --check --diff --limit $(HOSTS)
 
 TRY_CONTAINER := opencode-install
 
-try: require-artifacts ## Run the role in a container, then copy the result into ./tmp_test (needs Docker)
-	cd tests && $(UV) molecule converge
+try: require-artifacts ## Run the install scenario in a container, then copy the result into ./tmp_test (needs Docker)
+	cd tests && $(UV) molecule converge -s install
 	@rm -rf tmp_test && mkdir -p tmp_test/usr/local/bin tmp_test/home/alice
 	@docker cp $(TRY_CONTAINER):/usr/local/bin/opencode tmp_test/usr/local/bin/opencode
 	@docker cp $(TRY_CONTAINER):/home/alice/.config tmp_test/home/alice/.config
@@ -79,9 +87,27 @@ lint: ## Run yamllint + ansible-lint
 	$(UV) yamllint .
 	$(UV) ansible-lint $(PLAYBOOK) uninstall.yml roles/opencode/
 
-test: require-artifacts ## Run the Molecule scenario: converge + idempotence + verify (needs Docker)
-	cd tests && $(UV) molecule test
+test: require-artifacts ## Run all Molecule scenarios (needs Docker)
+	cd tests && $(UV) molecule test -s install
+	cd tests && $(UV) molecule test -s upgrade
+	cd tests && $(UV) molecule test -s config
+	cd tests && $(UV) molecule test -s uninstall
+
+test-install: require-artifacts ## Fresh-install scenario (+ per-user reconcile)
+	cd tests && $(UV) molecule test -s install
+
+test-upgrade: require-artifacts ## Upgrade scenario (backup-on-upgrade)
+	cd tests && $(UV) molecule test -s upgrade
+
+test-config: require-artifacts ## Config-update scenario (binary untouched)
+	cd tests && $(UV) molecule test -s config
+
+test-uninstall: require-artifacts ## Uninstall scenario
+	cd tests && $(UV) molecule test -s uninstall
 
 clean: ## Destroy Molecule containers, remove ./tmp_test and caches
-	cd tests && $(UV) molecule destroy 2>/dev/null || true
+	cd tests && $(UV) molecule destroy -s install    2>/dev/null || true
+	cd tests && $(UV) molecule destroy -s upgrade    2>/dev/null || true
+	cd tests && $(UV) molecule destroy -s config     2>/dev/null || true
+	cd tests && $(UV) molecule destroy -s uninstall  2>/dev/null || true
 	rm -rf tmp_test .venv __pycache__ .pytest_cache .ansible

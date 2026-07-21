@@ -8,6 +8,6 @@
       vars:
         opencode_provider_url: "http://10.0.0.1:8000/v1"
         opencode_marketplace_url: "http://10.0.0.2:9000"
-        opencode_users:
-          - alice
-          - bob
+        # One primary user per host. bob also exists on the box but is NOT the
+        # configured user, so the role must leave him untouched (asserted in verify).
+        opencode_user: alice

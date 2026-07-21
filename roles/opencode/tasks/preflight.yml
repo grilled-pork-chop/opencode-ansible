@@ -1,0 +1,46 @@
+---
+# preflight — validate prerequisites before touching the target
+#
+# Steps:
+#   1. Assert the committed artifacts (binary + plugin-runtime archive) exist on
+#      the controller. They are fetched, not committed (too large for git), so a
+#      clean checkout has neither until `make fetch` — fail early with that hint.
+#   2. Resolve the primary user's home once with a keyed getent (which fails
+#      cleanly if the user is missing) and derive opencode_user_home /
+#      opencode_config_dir for the config stage. Only when opencode_user is set.
+
+- name: "Verify committed artifacts exist on the controller"
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/{{ item }}"
+  register: opencode__artifact_stat
+  loop:
+    - opencode
+    - opencode-dependencies.tar.gz
+  delegate_to: localhost
+  become: false
+  tags: [opencode, preflight]
+
+- name: "Abort if an artifact is missing"
+  ansible.builtin.fail:
+    msg: |
+      Missing build artifact: {{ item.item }}
+      Run 'make fetch' on a machine with internet first (then deploy offline).
+  when: not item.stat.exists
+  loop: "{{ opencode__artifact_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  tags: [opencode, preflight]
+
+- name: "Resolve the primary user's home"
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ opencode_user }}"
+  when: opencode_user != ""
+  tags: [opencode, preflight, config, plugins]
+
+- name: "Set the user's home and config paths"
+  ansible.builtin.set_fact:
+    opencode_user_home: "{{ ansible_facts.getent_passwd[opencode_user][4] }}"
+    opencode_config_dir: "{{ ansible_facts.getent_passwd[opencode_user][4] }}/.config/opencode"
+  when: opencode_user != ""
+  tags: [opencode, preflight, config, plugins]

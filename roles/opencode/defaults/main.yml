@@ -1,24 +1,48 @@
 ---
-# Pinned opencode version. Bump this and run `make fetch` to upgrade.
-# (Asserted at runtime against `opencode --version`.)
+# defaults/main.yml — opencode role variables
+#
+# All variables can be overridden via group_vars, host_vars, or playbook-level
+# vars. See group_vars/workstations.yml for examples.
+
+# -- Version ----------------------------------------------------------------
+# Pinned opencode version and single source of truth. Bump this and run
+# `make fetch` to pull the matching binary + plugin runtime, then deploy.
+# (Asserted at runtime against `opencode --version` in verify.yml.)
 opencode_version: "1.17.11"
 
+# -- Target paths -----------------------------------------------------------
 # Where the system-wide binary lands (on PATH for every user).
 opencode_bin_path: "/usr/local/bin/opencode"
 
-# Local OpenAI-compatible endpoint the deployed config points at.
-# Models are auto-discovered by the bundled local-model plugin — no model var.
+# -- Provider & marketplace -------------------------------------------------
+# opencode_provider_url    — local OpenAI-compatible endpoint the deployed
+#                            config points at. Models are auto-discovered by the
+#                            bundled local-model plugin — there is no model var.
+# opencode_marketplace_url — skill-marketplace API endpoint, passed to the
+#                            opencode-marketplace plugin as its api_endpoint
+#                            option. The plugin appends /api/v1 itself, so give
+#                            the bare host[:port] (no path). Override per fleet
+#                            in group_vars/.
 opencode_provider_url: "http://localhost:8000/v1"
-
-# Skill-marketplace API endpoint. Passed to the opencode-marketplace plugin as
-# its api_endpoint option. The plugin appends /api/v1 itself, so give the bare
-# host[:port] (no path). Override per fleet in group_vars/.
 opencode_marketplace_url: "http://localhost:8000"
 
-# Accounts that get the per-user payload (config + commands + instructions + plugins)
-# in their ~/.config/opencode/. Declare the real list in group_vars/.
-# Example:
-#   opencode_users:
-#     - alice
-#     - bob
-opencode_users: []
+# -- User -------------------------------------------------------------------
+# Primary account that gets the per-user payload (config + commands +
+# instructions + plugins) in its ~/.config/opencode/. Defaults to the user
+# Ansible runs as on the target (the sudo caller, else the connection user).
+#
+# NOTE for the "admin deploys for someone else" model: when Ansible connects as
+# an automation account (e.g. ansible_user: ops), this resolves to THAT account
+# unless you override it per host. Set the real person in host_vars/<host>.yml:
+#   # host_vars/alice-laptop.yml
+#   opencode_user: alice
+# Set it to "" to deploy only the shared system binary (no per-user payload).
+opencode_user: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
+
+# -- Behaviour flags --------------------------------------------------------
+# opencode_keep_backup     — when true, the old binary is kept as
+#                            opencode.bak.<version> during an upgrade.
+# opencode_force_reinstall — when true, the binary is re-deployed even if the
+#                            correct version is already present.
+opencode_keep_backup: true
+opencode_force_reinstall: false
