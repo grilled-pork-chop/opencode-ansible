@@ -17,6 +17,7 @@
       - plugins/opencode-marketplace.ts
       - plugins/opencode-marketplace
       - instructions/AGENTS.md
+      - skills/ai-marketplace/SKILL.md
 
   tasks:
     - name: Binary installed and executable

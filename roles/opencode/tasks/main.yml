@@ -1,15 +1,19 @@
 ---
-# opencode role — entry point
+# opencode: role entry point
 #
-# Orchestrates the full deploy pipeline in order:
-#   1. preflight  — validate committed artifacts, read the passwd database
-#   2. detect     — determine current version and action (install / upgrade / none)
-#   3. install    — copy the pinned system binary (backing up any old one on upgrade)
-#   4. config     — deploy the per-user payload into ~/.config/opencode
-#   5. verify     — smoke-test the installed binary
+# Runs the deploy pipeline in order:
+#   1. preflight       validate the build artifacts, require opencode_user and
+#                      resolve their home from the passwd database
+#   2. detect          determine the installed version and action
+#   3. install_binary  copy the pinned binary (backs up any old one on upgrade)
+#   4. install_config  deploy the per-user payload into ~/.config/opencode
+#   5. verify          smoke-test the installed binary
+#
+# Files prefixed with _ (like _install_plugin_runtime.yml) are helpers. A stage
+# pulls them in with include_tasks. They are never imported directly from here.
 
 - import_tasks: preflight.yml
 - import_tasks: detect.yml
-- import_tasks: install.yml
-- import_tasks: config.yml
+- import_tasks: install_binary.yml
+- import_tasks: install_config.yml
 - import_tasks: verify.yml

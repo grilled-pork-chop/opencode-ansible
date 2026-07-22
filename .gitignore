@@ -21,5 +21,5 @@ tests/molecule/*/tmp/
 roles/opencode/files/opencode
 roles/opencode/files/opencode-dependencies.tar.gz
 
-# local inspection copy exported by `make try`
-tmp_test/
+# scratch install tree written by `make local`
+tmp/

@@ -10,4 +10,10 @@
 # opencode_provider_url: "http://localhost:8000/v1"
 # opencode_marketplace_url: "http://localhost:8000"
 # opencode_keep_backup: true
-# opencode_force_reinstall: false
+
+# Where the binary + plugin-runtime archive live (they are too large for git).
+# Default is the role's own files/ dir. Point it at a shared mount instead, and
+# add opencode_artifact_remote: true if that mount is on the targets rather than
+# on the Ansible controller.
+# opencode_artifact_dir: "/home/hnguyen/test"
+# opencode_artifact_remote: false

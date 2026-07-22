@@ -1,20 +1,54 @@
 ---
+# Deploy opencode to the workstation fleet.
+#
+#   uv run ansible-playbook -i inventory/hosts.yml site.yml
+#   uv run ansible-playbook -i inventory/hosts.yml site.yml --limit alice-laptop
+#
+# Run `make check` first for a dry run. Two things drive the result: the
+# opencode_user named per host in inventory/hosts.yml, and the fleet-wide
+# endpoints in group_vars/workstations.yml. Everything else has a role default.
+
 - name: Deploy opencode
-  hosts: all
+  # The group, not 'all'. A host added outside workstations would otherwise be
+  # deployed to with no group_vars applied, silently getting the role defaults.
+  hosts: workstations
+
+  # ansible.cfg turns this on globally. Stated here too so the playbook still
+  # does the right thing when run from another directory or another config.
+  become: true
+
+  # Required: the asserts below read ansible_system and ansible_architecture,
+  # and the role stamps its backup filenames from ansible_date_time.
   gather_facts: true
 
+  # Workstations are independent, so one unreachable laptop should not abort the
+  # rollout for everyone else. Set to true if you would rather stop on the first
+  # failure and investigate.
+  any_errors_fatal: false
+
+  # For a large fleet, uncomment to roll out in batches and keep the blast radius
+  # of a bad release small.
+  # serial: 10
+
   pre_tasks:
-    - name: Assert Ansible >= 2.12
+    # This checks the controller's own Ansible, which is the same for every host,
+    # so there is no point repeating it down the whole inventory.
+    - name: Assert the controller runs Ansible >= 2.12
       ansible.builtin.assert:
         that: ansible_version.full is version('2.12', '>=')
-        msg: "Requires Ansible >= 2.12"
+        fail_msg: "Requires Ansible >= 2.12, found {{ ansible_version.full }}."
+      run_once: true
 
-    - name: Assert Linux x86_64
+    # The shipped binary is a linux-x64 build, so anything else would install a
+    # file that cannot execute. Fail before touching the target.
+    - name: Assert the target is Linux x86_64
       ansible.builtin.assert:
         that:
           - ansible_system == 'Linux'
           - ansible_architecture == 'x86_64'
-        msg: "Only Linux x86_64 supported"
+        fail_msg: >-
+          Only Linux x86_64 is supported, found
+          {{ ansible_system }} {{ ansible_architecture }}.
 
   roles:
     - role: opencode

@@ -1,6 +1,6 @@
 ---
 # Upgrade: shared host prep, then seed a stub "old" binary at the system path so
-# detect.yml computes action == 'upgrade' and install.yml backs it up before
+# detect.yml computes action == 'upgrade' and install_binary.yml backs it up before
 # copying the real pinned binary over it.
 - import_playbook: ../../resources/prepare_host.yml
 

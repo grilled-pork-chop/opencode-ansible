@@ -9,6 +9,15 @@
   gather_facts: false
 
   tasks:
+    - name: Require opencode_user
+      ansible.builtin.assert:
+        that:
+          - opencode_user is defined
+          - opencode_user | default('') | trim | length > 0
+        fail_msg: >-
+          opencode_user is required and has no default. Name the account whose
+          payload should be removed in inventory/hosts.yml.
+
     - name: Remove the system binary
       ansible.builtin.file:
         path: "{{ opencode_bin_path | default('/usr/local/bin/opencode') }}"
@@ -17,7 +26,6 @@
     - name: Read passwd database to resolve the user's home
       ansible.builtin.getent:
         database: passwd
-      when: opencode_user != ""
 
     - name: Remove the primary user's opencode config and plugin runtime
       ansible.builtin.file:
@@ -26,10 +34,8 @@
       loop:
         - .config/opencode
         - .opencode
-      when:
-        - opencode_user != ""
-        - opencode_user in ansible_facts.getent_passwd
+      when: opencode_user in ansible_facts.getent_passwd
 
     - name: Summary
       ansible.builtin.debug:
-        msg: "Removed opencode for {{ opencode_user | default('(none)', true) }}"
+        msg: "Removed opencode for {{ opencode_user }}"

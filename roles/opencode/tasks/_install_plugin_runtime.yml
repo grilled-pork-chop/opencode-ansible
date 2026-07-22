@@ -1,9 +1,13 @@
 ---
-# Pre-stage @opencode-ai/plugin into {{ opencode__runtime_dir }}/node_modules so
-# opencode never runs `npm install` at startup (which hangs air-gapped).
-# Version-aware: a drifted runtime is wiped and re-extracted; a matching one is a
-# no-op, so upgrades self-heal and re-runs stay idempotent. Included once per
-# location (~/.opencode and the config dir) by the loop in config.yml.
+# _install_plugin_runtime: pre-stage the plugin runtime (helper, looped per dir)
+#
+# Stages @opencode-ai/plugin into {{ opencode__runtime_dir }}/node_modules so
+# opencode never runs `npm install` at startup (which hangs on an air-gapped
+# host). It is version-aware. A drifted runtime is wiped and re-extracted, and a
+# matching one is a no-op, so upgrades self-heal and re-runs stay idempotent.
+# install_config.yml includes it once per location (~/.opencode and the config
+# dir) with a loop.
+
 - name: "Ensure the runtime dir exists"
   ansible.builtin.file:
     path: "{{ opencode__runtime_dir }}"
@@ -34,8 +38,9 @@
 
 - name: "Stage the plugin runtime"
   ansible.builtin.unarchive:
-    src: opencode-dependencies.tar.gz
+    src: "{{ opencode_runtime_archive_src }}"
     dest: "{{ opencode__runtime_dir }}"
+    remote_src: "{{ opencode_artifact_remote | bool }}"
     owner: "{{ opencode_user }}"
     group: "{{ opencode_user }}"
   when: opencode__runtime_stale | bool
