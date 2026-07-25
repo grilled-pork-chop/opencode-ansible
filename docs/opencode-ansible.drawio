@@ -1,0 +1,78 @@
+<mxfile host="app.diagrams.net" type="device" version="24.0.0">
+  <diagram id="opencode-components" name="opencode">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="opencode — what's in the box" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#1f2933;" vertex="1" parent="1">
+          <mxGeometry x="240" y="10" width="360" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Core -->
+        <mxCell id="opencode" value="&lt;b&gt;opencode&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;self-contained · offline AI coding agent&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f2933;strokeColor=#0b0f14;fontColor=#ffffff;fontSize=14;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="60" width="250" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Ships-with components (blue) -->
+        <mxCell id="config" value="&lt;b&gt;Config&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;offline-hardened,&lt;br&gt;safe permissions,&lt;br&gt;points at the 2 URLs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2933;fontSize=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="commands" value="&lt;b&gt;Commands&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;/commit  /explain  /fix&lt;br&gt;/mr  /review  /test&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2933;fontSize=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="335" y="210" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="skill" value="&lt;b&gt;Skill&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;ai-marketplace&lt;br&gt;(more installable&lt;br&gt;via the marketplace)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1f2933;fontSize=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="610" y="210" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Plugins (green) -->
+        <mxCell id="plugin_local" value="&lt;b&gt;Plugin · Local Model&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;auto-discovers the models&lt;br&gt;from the gateway&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1f2933;fontSize=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="400" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="plugin_market" value="&lt;b&gt;Plugin · Marketplace&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;installs &amp;amp; syncs&lt;br&gt;skills on demand&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1f2933;fontSize=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="540" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- External local services (orange) -->
+        <mxCell id="gateway" value="&lt;b&gt;LLM Gateway&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;OpenAI-compatible&lt;br&gt;model provider&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#1f2933;fontSize=12;arcSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="400" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="market" value="&lt;b&gt;Marketplace&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;&quot;&gt;skills registry&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#1f2933;fontSize=12;arcSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="540" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Composition edges: opencode ships these (no arrowhead, grey) -->
+        <mxCell id="e_config" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#9aa5b1;strokeWidth=1.5;" edge="1" parent="1" source="opencode" target="config">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_commands" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#9aa5b1;strokeWidth=1.5;" edge="1" parent="1" source="opencode" target="commands">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_skill" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#9aa5b1;strokeWidth=1.5;" edge="1" parent="1" source="opencode" target="skill">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_plocal" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#9aa5b1;strokeWidth=1.5;" edge="1" parent="1" source="opencode" target="plugin_local">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pmarket" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#9aa5b1;strokeWidth=1.5;" edge="1" parent="1" source="opencode" target="plugin_market">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Functional edges: plugins talk to the two services -->
+        <mxCell id="e_gateway" value="models + chat" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;fontColor=#7a5300;fontSize=11;fontStyle=1;" edge="1" parent="1" source="plugin_local" target="gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_market" value="skills sync" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;fontColor=#7a5300;fontSize=11;fontStyle=1;" edge="1" parent="1" source="plugin_market" target="market">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;&amp;nbsp;&amp;nbsp; ▮ ships inside opencode&amp;nbsp;&amp;nbsp;·&amp;nbsp;&amp;nbsp; ▬▶ talks to (local service)&amp;nbsp;&amp;nbsp;·&amp;nbsp;&amp;nbsp; dashed = outside the box" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#52606d;" vertex="1" parent="1">
+          <mxGeometry x="120" y="650" width="660" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

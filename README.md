@@ -5,6 +5,10 @@ fleet, fully offline. The binary goes to `/usr/local/bin`; each machine's primar
 user gets a managed `~/.config/opencode/` payload with the plugin runtime
 pre-staged, so nothing is fetched at startup.
 
+> For a quick picture of what an install is made of, see
+> [`docs/architecture.md`](docs/architecture.md) (editable
+> [`.drawio`](docs/opencode-ansible.drawio) alongside it).
+
 | Path                                                            | Contents                                                            |
 | --------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `/usr/local/bin/opencode`                                       | the binary, system-wide, on PATH for every user                     |
