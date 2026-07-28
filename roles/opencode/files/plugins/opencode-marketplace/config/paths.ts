@@ -32,17 +32,6 @@ export function skillsRoot(scope: Scope, directory?: string): string {
 }
 
 /**
- * Resolves the directory where slash-command markdown files are written.
- * OpenCode globs `{command,commands}/**` for these; we use the plural form to
- * match the `skills/` convention.
- *
- * @returns Absolute path to `~/.config/opencode/commands`.
- */
-export function commandDir(): string {
-  return join(globalConfigDir(), "commands")
-}
-
-/**
  * Resolves `rel` against `root` and returns the absolute path **only** if it stays
  * within `root` — the single traversal guard for writing/removing skill files.
  *

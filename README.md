@@ -8,7 +8,9 @@ pre-staged, so nothing is fetched at startup.
 | Path                                                            | Contents                                                            |
 | --------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `/usr/local/bin/opencode`                                       | the binary, system-wide, on PATH for every user                     |
-| `~/.config/opencode/opencode.jsonc`                             | managed, offline-hardened config (permissions + provider + plugins) |
+| `/usr/local/bin/marketplace`                                    | the `!marketplace` bang-shell wrapper, next to the binary (on PATH)  |
+| `~/.config/opencode/opencode.jsonc`                             | managed, offline-hardened config (permissions + provider)           |
+| `~/.config/opencode/marketplace.json`                           | marketplace plugin endpoint config (read by the drop-in plugin)     |
 | `~/.config/opencode/{commands,plugins,instructions,skills}/`    | slash commands, bundled plugins, `AGENTS.md`, and skills            |
 | `~/.config/opencode/node_modules/`, `~/.opencode/node_modules/` | `@opencode-ai/plugin` runtime, pre-staged                           |
 | `~/.opencode/bin/opencode`                                      | symlink to the system binary (only if the user had their own)       |

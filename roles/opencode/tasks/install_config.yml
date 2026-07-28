@@ -124,3 +124,23 @@
     - "{{ opencode_config_dir }}"
   loop_control:
     loop_var: opencode__runtime_dir
+
+# Marketplace plugin config + wrapper. The plugin and its CLI read the endpoint
+# from marketplace.json (no npm-resolved "plugin" array, which breaks airgapped).
+# The wrapper lands next to the binary — a dir already on every user's PATH — so
+# `!marketplace` resolves without any shell-profile changes.
+- name: "Render the marketplace plugin config (marketplace.json)"
+  ansible.builtin.template:
+    src: marketplace.json.j2
+    dest: "{{ opencode_config_dir }}/marketplace.json"
+    owner: "{{ opencode_user }}"
+    group: "{{ opencode_user }}"
+    mode: "0644"
+
+- name: "Render the !marketplace bang-shell wrapper next to the binary"
+  ansible.builtin.template:
+    src: marketplace.wrapper.j2
+    dest: "{{ opencode_bin_path | dirname }}/marketplace"
+    owner: "{{ opencode_bin_owner }}"
+    group: "{{ opencode_bin_group }}"
+    mode: "0755"

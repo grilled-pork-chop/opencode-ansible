@@ -187,11 +187,9 @@
       // local-model plugin from the endpoint above — left empty on purpose.
       "models": {}
     }
-  },
-  // Marketplace plugin: skill-registry endpoint passed as plugin options
-  // (the [name, options] tuple form). Templated from opencode_marketplace_url
-  // so each fleet can point at its own server.
-  "plugin": [
-    ["opencode-marketplace", { "api_endpoint": "{{ opencode_marketplace_url }}" }]
-  ]
+  }
+  // NOTE: bundled plugins (opencode-marketplace, opencode-local) are auto-loaded
+  // as drop-ins from plugins/ — deliberately NOT listed in a plugin array. A bare
+  // name there makes OpenCode fetch it from npm at startup, which hangs on an
+  // airgapped host. The marketplace endpoint is configured via marketplace.json.
 }

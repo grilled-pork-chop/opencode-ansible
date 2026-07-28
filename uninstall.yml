@@ -18,10 +18,13 @@
           opencode_user is required and has no default. Name the account whose
           payload should be removed in inventory/hosts.yml.
 
-    - name: Remove the system binary
+    - name: Remove the system binary and the marketplace wrapper
       ansible.builtin.file:
-        path: "{{ opencode_bin_path | default('/usr/local/bin/opencode') }}"
+        path: "{{ item }}"
         state: absent
+      loop:
+        - "{{ opencode_bin_path | default('/usr/local/bin/opencode') }}"
+        - "{{ opencode_bin_path | default('/usr/local/bin/opencode') | dirname }}/marketplace"
 
     - name: Read passwd database to resolve the user's home
       ansible.builtin.getent:

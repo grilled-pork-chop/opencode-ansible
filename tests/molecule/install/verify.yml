@@ -11,6 +11,7 @@
     _config: "/home/alice/.config/opencode/opencode.jsonc"
     _expected:
       - opencode.jsonc
+      - marketplace.json
       - commands/commit.md
       - plugins/opencode-local.ts
       - plugins/opencode-local-model
@@ -85,12 +86,30 @@
           - "'./instructions/AGENTS.md' in (_cfg_raw.content | b64decode)"
         msg: "opencode.jsonc is missing the instructions key"
 
-    - name: Assert marketplace plugin endpoint substituted
+    - name: Assert opencode.jsonc has NO npm "plugin" array (airgap regression guard)
       ansible.builtin.assert:
         that:
-          - "'opencode-marketplace' in (_cfg_raw.content | b64decode)"
-          - opencode_marketplace_url in (_cfg_raw.content | b64decode)
-        msg: "opencode.jsonc marketplace plugin endpoint was not templated correctly"
+          - "'\"plugin\"' not in (_cfg_raw.content | b64decode)"
+        msg: >-
+          opencode.jsonc must not carry a "plugin" array — a bare name there makes
+          OpenCode fetch the plugin from npm at startup, which breaks airgapped hosts.
+
+    - name: Read the rendered marketplace.json plugin config
+      ansible.builtin.slurp:
+        src: "/home/alice/.config/opencode/marketplace.json"
+      register: _mp_raw
+
+    - name: Assert marketplace.json carries the endpoint
+      ansible.builtin.assert:
+        that:
+          - opencode_marketplace_url in (_mp_raw.content | b64decode)
+        msg: "marketplace.json was not templated with the marketplace endpoint"
+
+    - name: The !marketplace wrapper is installed next to the binary and executable
+      ansible.builtin.stat:
+        path: /usr/local/bin/marketplace
+      register: _mp_wrapper
+      failed_when: not (_mp_wrapper.stat.exists and _mp_wrapper.stat.executable)
 
     # --- Reconciliation of alice's pre-existing user install (seeded in prepare) ---
 

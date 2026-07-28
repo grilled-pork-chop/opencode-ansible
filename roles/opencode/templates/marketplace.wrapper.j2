@@ -1,0 +1,8 @@
+#!/bin/sh
+# MANAGED BY ANSIBLE (role: opencode) — do not edit by hand; changes are overwritten.
+#
+# The `!marketplace` bang-shell wrapper. Runs the plugin's CLI through opencode's
+# own embedded Bun (BUN_BE_BUN=1), so no node/bun is needed on the host. Lives next
+# to the opencode binary, which is on PATH for every user. The endpoint is read by
+# the CLI from marketplace.json — nothing is baked in here.
+exec env BUN_BE_BUN=1 '{{ opencode_bin_path }}' '{{ opencode_config_dir }}/plugins/opencode-marketplace/cli.ts' "$@"
