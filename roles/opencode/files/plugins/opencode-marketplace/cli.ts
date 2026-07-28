@@ -18,13 +18,8 @@ import { resolveConfig } from "./config/options"
 import { handleCommand } from "./handler"
 import { MarketplaceClient } from "./marketplace/client"
 
-/** Maps a CLI subcommand to its internal command name. */
-const SUBCOMMANDS: Record<string, string> = {
-  list: "marketplace-list",
-  install: "marketplace-install",
-  remove: "marketplace-remove",
-  sync: "marketplace-sync",
-}
+/** The subcommands the handler dispatches on. */
+const COMMANDS = new Set(["list", "install", "remove", "sync"])
 
 const USAGE = [
   "Usage: !marketplace <command> [args]",
@@ -35,18 +30,14 @@ const USAGE = [
   "  sync                                    Check installed skills for updates",
 ].join("\n")
 
-const [subcommand, ...rest] = process.argv.slice(2)
+const [command, ...rest] = process.argv.slice(2)
 
-if (!subcommand || !(subcommand in SUBCOMMANDS)) {
+if (!command || !COMMANDS.has(command)) {
   console.log(USAGE)
-  process.exit(subcommand ? 1 : 0)
+  process.exit(command ? 1 : 0)
 }
 
 const config = resolveConfig(await loadFileConfig(), process.env)
 const client = new MarketplaceClient(config)
-const text = await handleCommand(
-  { client, config, directory: process.cwd() },
-  SUBCOMMANDS[subcommand],
-  rest.join(" ")
-)
+const text = await handleCommand({ client, config, directory: process.cwd() }, command, rest.join(" "))
 console.log(text)

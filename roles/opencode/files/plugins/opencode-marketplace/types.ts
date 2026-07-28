@@ -10,7 +10,7 @@
  */
 
 /** Toast severity levels accepted by `client.tui.showToast` (matches the SDK union). */
-export type ToastVariant = "info" | "success" | "warning" | "error"
+type ToastVariant = "info" | "success" | "warning" | "error"
 
 /** Minimal view of the OpenCode TUI client used to surface notification toasts. */
 export interface OpenCodeClient {

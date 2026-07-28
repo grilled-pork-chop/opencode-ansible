@@ -20,7 +20,7 @@ interface CommandDeps {
  * readable message so the CLI never throws an unhandled error.
  *
  * @param deps        - Captured client/config/directory.
- * @param command     - The internal command name (e.g. `marketplace-install`).
+ * @param command     - The subcommand name (`list` | `install` | `remove` | `sync`).
  * @param argsString  - The raw argument string typed after the command.
  * @returns The result text to print.
  */
@@ -31,22 +31,22 @@ export async function handleCommand(deps: CommandDeps, command: string, argsStri
 
   try {
     switch (command) {
-      case "marketplace-list":
+      case "list":
         return await listSkills(client, tokens)
 
-      case "marketplace-install": {
+      case "install": {
         const name = tokens[0]
         if (!name) return "Usage: !marketplace install <skill-name> [--scope global|project]"
         return await install(client, config, name, scope, directory)
       }
 
-      case "marketplace-remove": {
+      case "remove": {
         const slug = tokens[0]
         if (!slug) return "Usage: !marketplace remove <skill-slug> [--scope global|project]"
         return await remove(slug, scope, directory)
       }
 
-      case "marketplace-sync": {
+      case "sync": {
         const stale = await runSync(client, scope, directory)
         if (stale.length === 0) return "All installed marketplace skills are up to date."
         return `Updates available:\n${stale.map((s) => `  • ${s.name} → revision ${s.latestRevision} (run !marketplace install ${s.name})`).join("\n")}`

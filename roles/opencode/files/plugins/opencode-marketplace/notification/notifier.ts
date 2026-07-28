@@ -5,8 +5,6 @@ import type { OpenCodeClient } from "../types"
 const DURATION = {
   success: 30_000,
   info: 30_000,
-  warning: 60_000,
-  error: 60_000,
 } as const
 
 type ToastVariant = keyof typeof DURATION
@@ -28,16 +26,6 @@ export class Notifier {
   /** Shows a success toast. */
   success(message: string): void {
     this.show("success", message)
-  }
-
-  /** Shows an error toast. */
-  error(message: string): void {
-    this.show("error", message)
-  }
-
-  /** Shows a warning toast. */
-  warning(message: string): void {
-    this.show("warning", message)
   }
 
   /** Shows an informational toast. */
