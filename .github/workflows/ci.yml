@@ -1,0 +1,61 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (yamllint + ansible-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: yamllint
+        run: uv run yamllint .
+
+      - name: ansible-lint
+        run: uv run ansible-lint site.yml uninstall.yml roles/opencode/
+
+  molecule:
+    name: Molecule (${{ matrix.scenario }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [install, upgrade, config, uninstall]
+    steps:
+      - uses: actions/checkout@v4
+
+      # node 24 builds the @opencode-ai/plugin runtime tarball in `make fetch`.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync
+
+      # Downloads the pinned binary and builds the plugin deps archive.
+      - name: Fetch artifacts
+        run: make fetch
+
+      - name: Molecule test
+        run: uv run molecule test -s ${{ matrix.scenario }}
+        working-directory: tests

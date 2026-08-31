@@ -12,10 +12,11 @@ __pycache__/
 tests/molecule/*/.molecule/
 tests/molecule/*/tmp/
 
-# Editor
+# Editor / local agent state
 .DS_Store
 *.swp
 *.swo
+.claude/
 
 # binary + plugin runtime — fetched via `make fetch`, too large for git
 roles/opencode/files/opencode
