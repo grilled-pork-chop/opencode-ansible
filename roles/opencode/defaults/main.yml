@@ -1,24 +1,67 @@
 ---
-# Pinned opencode version. Bump this and run `make fetch` to upgrade.
-# (Asserted at runtime against `opencode --version`.)
+# defaults/main.yml — opencode role variables
+#
+# All variables can be overridden via group_vars, host_vars, or playbook-level
+# vars. See group_vars/workstations.yml for examples.
+
+# -- Version ----------------------------------------------------------------
+# Pinned opencode version and single source of truth. Bump this and run
+# `make fetch` to pull the matching binary + plugin runtime, then deploy.
+# (Asserted at runtime against `opencode --version` in verify.yml.)
 opencode_version: "1.17.11"
 
-# Where the system-wide binary lands (on PATH for every user).
+# -- Target paths -----------------------------------------------------------
+# Where the system-wide binary lands (on PATH for every user), and who owns it.
+# The owner is a var only so `make local` can trial-install into ./tmp without
+# sudo. Leave it at root for anything real.
 opencode_bin_path: "/usr/local/bin/opencode"
+opencode_bin_owner: root
+opencode_bin_group: root
 
-# Local OpenAI-compatible endpoint the deployed config points at.
-# Models are auto-discovered by the bundled local-model plugin — no model var.
+# -- Build artifacts (source side) ------------------------------------------
+# The binary and the plugin-runtime archive are too large for git, so they are
+# not committed. Point opencode_artifact_dir at wherever they actually live —
+# a shared mount, an NFS export, a scratch dir — and the two paths below follow.
+# Override either path on its own if the filenames differ:
+#   opencode_artifact_dir: /mnt/artifacts/opencode
+#
+# opencode_artifact_remote — where those paths are read from:
+#   false (default) — on the Ansible controller; the files are pushed to each
+#                     target over the connection, as they always were.
+#   true            — already visible ON the target (the shared volume is
+#                     mounted there too), so nothing crosses the wire. Faster
+#                     for a large fleet, but every target needs the mount, and
+#                     preflight then checks the paths there instead.
+opencode_artifact_dir: "{{ role_path }}/files"
+opencode_binary_src: "{{ opencode_artifact_dir }}/opencode"
+opencode_runtime_archive_src: "{{ opencode_artifact_dir }}/opencode-dependencies.tar.gz"
+opencode_artifact_remote: false
+
+# -- Provider & marketplace -------------------------------------------------
+# opencode_provider_url    — local OpenAI-compatible endpoint the deployed
+#                            config points at. Models are auto-discovered by the
+#                            bundled local-model plugin — there is no model var.
+# opencode_marketplace_url — skill-marketplace API endpoint, passed to the
+#                            opencode-marketplace plugin as its api_endpoint
+#                            option. The plugin appends /api/v1 itself, so give
+#                            the bare host[:port] (no path). Override per fleet
+#                            in group_vars/.
 opencode_provider_url: "http://localhost:8000/v1"
-
-# Skill-marketplace API endpoint. Passed to the opencode-marketplace plugin as
-# its api_endpoint option. The plugin appends /api/v1 itself, so give the bare
-# host[:port] (no path). Override per fleet in group_vars/.
 opencode_marketplace_url: "http://localhost:8000"
 
-# Accounts that get the per-user payload (config + commands + instructions + plugins)
-# in their ~/.config/opencode/. Declare the real list in group_vars/.
-# Example:
-#   opencode_users:
-#     - alice
-#     - bob
-opencode_users: []
+# -- User -------------------------------------------------------------------
+# opencode_user — REQUIRED, no default on purpose. The account that gets the
+# per-user payload (config + commands + instructions + plugins + skills) in its
+# ~/.config/opencode/. Name it per host in inventory/hosts.yml:
+#   alice-laptop:
+#     ansible_host: 192.168.1.10
+#     opencode_user: alice
+#
+# It is deliberately not derived from the connection: when Ansible logs in as an
+# automation account (ansible_user: ops), guessing would silently deploy the
+# payload into the wrong home. preflight.yml asserts it is set and non-empty.
+
+# -- Behaviour flags --------------------------------------------------------
+# opencode_keep_backup — when true, the old binary is kept as
+#                        opencode.bak.<version> during an upgrade.
+opencode_keep_backup: true

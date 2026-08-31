@@ -1,0 +1,5 @@
+---
+# Run the real uninstall playbook against the molecule host.
+- import_playbook: ../../../uninstall.yml
+  vars:
+    opencode_user: bob

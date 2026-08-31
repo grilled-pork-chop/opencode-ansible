@@ -1,0 +1,18 @@
+---
+# Upgrade: shared host prep, then seed a stub "old" binary at the system path so
+# detect.yml computes action == 'upgrade' and install_binary.yml backs it up before
+# copying the real pinned binary over it.
+- import_playbook: ../../resources/prepare_host.yml
+
+- name: Prepare — seed an old opencode binary
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install a stub binary reporting an old version
+      ansible.builtin.copy:
+        dest: /usr/local/bin/opencode
+        content: "#!/bin/sh\necho 1.0.0\n"
+        owner: root
+        group: root
+        mode: "0755"

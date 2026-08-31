@@ -1,13 +1,19 @@
 ---
-# Settings for every host in the 'workstations' group.
-# Override role defaults here; host_vars/<host>.yml can refine per host.
+# Fleet-wide overrides for every host in the 'workstations' group.
+# These override role defaults; host_vars/<host>.yml refines per host.
+#
+# The per-host primary user is NOT set here — put `opencode_user: <name>` in
+# host_vars/<host>.yml. Fleet-wide settings (like the endpoints) live here.
+#
+# Uncomment and point at your fleet's endpoints:
 
-# The local OpenAI-compatible endpoint the deployed config points at.
-# (Models are auto-discovered by the bundled local-model plugin.)
-opencode_provider_url: "http://localhost:8000/v1"
+# opencode_provider_url: "http://localhost:8000/v1"
+# opencode_marketplace_url: "http://localhost:8000"
+# opencode_keep_backup: true
 
-# Accounts that receive the per-user opencode payload (config + commands +
-# skills + plugins) in their ~/.config/opencode/. List the real users here.
-opencode_users:
-  - alice
-  - bob
+# Where the binary + plugin-runtime archive live (they are too large for git).
+# Default is the role's own files/ dir. Point it at a shared mount instead, and
+# add opencode_artifact_remote: true if that mount is on the targets rather than
+# on the Ansible controller.
+# opencode_artifact_dir: "/srv/artifacts/opencode"
+# opencode_artifact_remote: false

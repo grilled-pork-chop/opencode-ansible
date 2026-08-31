@@ -17,6 +17,7 @@
       - plugins/opencode-marketplace.ts
       - plugins/opencode-marketplace
       - instructions/AGENTS.md
+      - skills/ai-marketplace/SKILL.md
 
   tasks:
     - name: Binary installed and executable
@@ -31,26 +32,33 @@
       changed_when: false
       failed_when: opencode_version not in _ver.stdout
 
-    - name: Config + payload present for each user
+    - name: Config + payload present for the primary user (alice)
       ansible.builtin.stat:
-        path: "/home/{{ item.0 }}/.config/opencode/{{ item.1 }}"
+        path: "/home/alice/.config/opencode/{{ item }}"
       register: _paths
       failed_when: not _paths.stat.exists
-      loop: "{{ ['alice', 'bob'] | product(_expected) | list }}"
+      loop: "{{ _expected }}"
 
-    - name: Plugin runtime staged in ~/.opencode for each user
+    - name: Plugin runtime staged in alice's ~/.opencode
       ansible.builtin.stat:
-        path: "/home/{{ item }}/.opencode/node_modules/@opencode-ai/plugin/package.json"
+        path: /home/alice/.opencode/node_modules/@opencode-ai/plugin/package.json
       register: _deps
       failed_when: not _deps.stat.exists
-      loop: [alice, bob]
 
-    - name: Plugin runtime staged in ~/.config/opencode for each user
+    - name: Plugin runtime staged in alice's ~/.config/opencode
       ansible.builtin.stat:
-        path: "/home/{{ item }}/.config/opencode/node_modules/@opencode-ai/plugin/package.json"
+        path: /home/alice/.config/opencode/node_modules/@opencode-ai/plugin/package.json
       register: _config_deps
       failed_when: not _config_deps.stat.exists
-      loop: [alice, bob]
+
+    - name: Bob (not the configured user) got NO opencode payload
+      ansible.builtin.stat:
+        path: "/home/bob/{{ item }}"
+      register: _bob_paths
+      failed_when: _bob_paths.stat.exists
+      loop:
+        - .config/opencode/opencode.jsonc
+        - .opencode
 
     - name: Config is owned by the user
       ansible.builtin.stat:
@@ -83,3 +91,45 @@
           - "'opencode-marketplace' in (_cfg_raw.content | b64decode)"
           - opencode_marketplace_url in (_cfg_raw.content | b64decode)
         msg: "opencode.jsonc marketplace plugin endpoint was not templated correctly"
+
+    # --- Reconciliation of alice's pre-existing user install (seeded in prepare) ---
+
+    - name: Alice's ~/.opencode/bin/opencode is now a symlink to the fleet binary
+      ansible.builtin.stat:
+        path: /home/alice/.opencode/bin/opencode
+      register: _alice_bin
+      failed_when:
+        - not (_alice_bin.stat.exists and _alice_bin.stat.islnk
+               and _alice_bin.stat.lnk_target == '/usr/local/bin/opencode')
+
+    - name: Alice's original binary was backed up (not deleted)
+      ansible.builtin.find:
+        paths: /home/alice/.opencode/bin
+        patterns: "opencode.*.bak"
+      register: _alice_bin_bak
+      failed_when: _alice_bin_bak.matched < 1
+
+    - name: Alice's opencode.jsonc is now the managed one
+      ansible.builtin.assert:
+        that: "'MANAGED BY ANSIBLE' in (_cfg_raw.content | b64decode)"
+        msg: "alice's opencode.jsonc was not replaced by the managed template"
+
+    - name: Alice's hand-authored opencode.jsonc was backed up
+      ansible.builtin.find:
+        paths: /home/alice/.config/opencode
+        patterns: "opencode.jsonc.*.bak"
+      register: _alice_jsonc_bak
+      failed_when: _alice_jsonc_bak.matched < 1
+
+    - name: Alice's stray opencode.json was moved aside, not deleted
+      ansible.builtin.stat:
+        path: /home/alice/.config/opencode/opencode.json
+      register: _alice_json
+      failed_when: _alice_json.stat.exists
+
+    - name: Alice's opencode.json backup exists
+      ansible.builtin.find:
+        paths: /home/alice/.config/opencode
+        patterns: "opencode.json.*.bak"
+      register: _alice_json_bak
+      failed_when: _alice_json_bak.matched < 1

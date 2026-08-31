@@ -1,0 +1,11 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: opencode
+      vars:
+        opencode_provider_url: "http://10.0.0.1:8000/v1"
+        opencode_marketplace_url: "http://10.0.0.2:9000"
+        opencode_user: alice

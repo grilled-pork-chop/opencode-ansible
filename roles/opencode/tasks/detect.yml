@@ -1,0 +1,53 @@
+---
+# detect: determine what action the role should take
+#
+# Reads the currently installed version (if any) and sets two facts:
+#
+#   opencode__current_version
+#       The version string reported by the installed binary, or "none" if
+#       opencode is not installed.
+#
+#   opencode__action
+#       One of three values:
+#         "install"  no binary present
+#         "upgrade"  binary exists but reports a different version
+#         "none"     correct version already installed, nothing to do
+#
+# Every downstream task is idempotent, so the "none" action is only informational
+# (it shows up in the debug output). It does not gate any task, because the copy,
+# file, and template modules are no-ops when content is unchanged. The only
+# non-idempotent task is the binary backup in install_binary.yml, and that one is
+# guarded on opencode__action == 'upgrade' directly.
+
+- name: "Read installed binary"
+  ansible.builtin.stat:
+    path: "{{ opencode_bin_path }}"
+  register: opencode__existing
+
+- name: "Read installed version string"
+  ansible.builtin.command:
+    cmd: "{{ opencode_bin_path }} --version"
+  register: opencode__installed_ver
+  changed_when: false
+  failed_when: false
+  when: opencode__existing.stat.exists
+
+- name: "Determine current version"
+  ansible.builtin.set_fact:
+    opencode__current_version: >-
+      {{ (opencode__installed_ver.stdout | default('') | trim).split() | last | default('none', true) }}
+
+- name: "Determine action"
+  ansible.builtin.set_fact:
+    opencode__action: >-
+      {{ 'none'    if opencode__current_version == opencode_version
+         else 'upgrade' if opencode__current_version != 'none'
+         else 'install' }}
+
+- name: "Show action"
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'opencode ' ~ opencode_version ~ ' already installed.'
+         if opencode__action == 'none'
+         else opencode__action | capitalize ~ ': '
+              ~ opencode__current_version ~ ' → ' ~ opencode_version }}

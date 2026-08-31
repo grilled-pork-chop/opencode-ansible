@@ -1,0 +1,10 @@
+---
+# Example per-host facts. Copy to host_vars/<inventory_hostname>.yml (drop the
+# .example) and edit. The filename must match the host's name in inventory.
+
+# The primary account on this machine that gets the opencode payload.
+opencode_user: alice
+
+# Optional per-host overrides (otherwise inherited from group_vars/workstations.yml):
+# opencode_provider_url: "http://10.0.0.5:8000/v1"
+# opencode_marketplace_url: "http://10.0.0.5:9000"

@@ -1,0 +1,126 @@
+---
+# install_config: deploy the per-user payload for opencode_user
+#
+# preflight already required opencode_user and resolved opencode_user_home and
+# opencode_config_dir, so this stage can assume all three are set.
+#
+# Steps:
+#   1. Binary:  a real ~/.opencode/bin/opencode is the user's own install. It
+#               shadows the pinned binary on PATH, so back it up and symlink it
+#               to opencode_bin_path. Fresh users (no such file) are left alone.
+#               The symlink sets no owner/group on purpose. The file module would
+#               follow the link and chown the shared root-owned target.
+#   2. Config:  render opencode.jsonc. First read any existing one. If it lacks
+#               the "MANAGED BY ANSIBLE" marker it is hand-authored, so back it up
+#               first. A stray opencode.json (opencode reads it too) is backed up
+#               and removed, since nothing else would overwrite it.
+#   3. Payload: copy commands/, plugins/, instructions/, skills/ into the config
+#               dir. These come from the role's own files/ (small, committed),
+#               unlike the binary and the runtime archive.
+#   4. Runtime: pre-stage @opencode-ai/plugin (see _install_plugin_runtime.yml)
+#               in both ~/.opencode and the config dir, so imports resolve
+#               wherever opencode looks.
+#
+# Non-destructive contract: anything the user already had is renamed to a
+# timestamped *.bak, never deleted. Once the role owns a file (the marker or the
+# symlink is present) the backup steps skip, so version and URL bumps do not pile
+# up backups.
+
+- name: "Check for a user-installed binary that would shadow the pinned one"
+  ansible.builtin.stat:
+    path: "{{ opencode_user_home }}/.opencode/bin/opencode"
+  register: opencode__user_bin
+
+- name: "Back up a real user-installed binary before replacing it"
+  ansible.builtin.copy:
+    src: "{{ opencode_user_home }}/.opencode/bin/opencode"
+    dest: "{{ opencode_user_home }}/.opencode/bin/opencode.{{ ansible_date_time.iso8601_basic_short }}.bak"
+    remote_src: true
+    owner: "{{ opencode_user }}"
+    group: "{{ opencode_user }}"
+    mode: "0755"
+  when: opencode__user_bin.stat.exists and not opencode__user_bin.stat.islnk
+
+- name: "Symlink the user's binary to the pinned binary"
+  ansible.builtin.file:
+    src: "{{ opencode_bin_path }}"
+    dest: "{{ opencode_user_home }}/.opencode/bin/opencode"
+    state: link
+    force: true
+  when: opencode__user_bin.stat.exists
+
+- name: "Ensure the user config dir exists"
+  ansible.builtin.file:
+    path: "{{ opencode_config_dir }}"
+    state: directory
+    owner: "{{ opencode_user }}"
+    group: "{{ opencode_user }}"
+    mode: "0755"
+
+- name: "Read any existing opencode.jsonc"
+  ansible.builtin.slurp:
+    src: "{{ opencode_config_dir }}/opencode.jsonc"
+  register: opencode__existing_jsonc
+  failed_when: false
+
+- name: "Back up a hand-authored opencode.jsonc (no managed marker)"
+  ansible.builtin.copy:
+    src: "{{ opencode_config_dir }}/opencode.jsonc"
+    dest: "{{ opencode_config_dir }}/opencode.jsonc.{{ ansible_date_time.iso8601_basic_short }}.bak"
+    remote_src: true
+    owner: "{{ opencode_user }}"
+    group: "{{ opencode_user }}"
+    mode: preserve
+  when:
+    - opencode__existing_jsonc.content is defined
+    - "'MANAGED BY ANSIBLE' not in (opencode__existing_jsonc.content | b64decode)"
+
+- name: "Render opencode.jsonc"
+  ansible.builtin.template:
+    src: opencode.jsonc.j2
+    dest: "{{ opencode_config_dir }}/opencode.jsonc"
+    owner: "{{ opencode_user }}"
+    group: "{{ opencode_user }}"
+    mode: "0644"
+
+- name: "Check for a competing opencode.json (role owns .jsonc)"
+  ansible.builtin.stat:
+    path: "{{ opencode_config_dir }}/opencode.json"
+  register: opencode__competing_json
+
+- name: "Back up the competing opencode.json"
+  ansible.builtin.copy:
+    src: "{{ opencode_config_dir }}/opencode.json"
+    dest: "{{ opencode_config_dir }}/opencode.json.{{ ansible_date_time.iso8601_basic_short }}.bak"
+    remote_src: true
+    owner: "{{ opencode_user }}"
+    group: "{{ opencode_user }}"
+    mode: preserve
+  when: opencode__competing_json.stat.exists
+
+- name: "Remove the competing opencode.json once backed up"
+  ansible.builtin.file:
+    path: "{{ opencode_config_dir }}/opencode.json"
+    state: absent
+  when: opencode__competing_json.stat.exists
+
+- name: "Deploy commands, plugins, instructions, and skills"
+  ansible.builtin.copy:
+    src: "{{ item }}/"
+    dest: "{{ opencode_config_dir }}/{{ item }}/"
+    owner: "{{ opencode_user }}"
+    group: "{{ opencode_user }}"
+    mode: preserve
+  loop:
+    - commands
+    - plugins
+    - instructions
+    - skills
+
+- name: "Pre-stage the plugin runtime in both locations"
+  ansible.builtin.include_tasks: _install_plugin_runtime.yml
+  loop:
+    - "{{ opencode_user_home }}/.opencode"
+    - "{{ opencode_config_dir }}"
+  loop_control:
+    loop_var: opencode__runtime_dir

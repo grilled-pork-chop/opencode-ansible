@@ -16,7 +16,7 @@ description: How to use the AI skills marketplace
 
 # AI Skills Marketplace
 
-Manage skills with these shell commands — type them in the prompt with a leading \`!\`:
+Manage skills with these shell commands — users should type them in the prompt with a leading \`!\`:
 
 - \`!marketplace list\` — list available skills
 - \`!marketplace install <name>\` — install a skill

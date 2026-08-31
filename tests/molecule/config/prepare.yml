@@ -1,0 +1,18 @@
+---
+# Config-only change: shared host prep, then a first install with the ORIGINAL
+# provider/marketplace URLs. converge.yml then re-deploys with changed URLs and
+# the same binary version, so verify can prove the binary is left untouched and
+# only opencode.jsonc is rewritten. Uses the clean user 'bob' (no seeded
+# collisions) so the "no backup pile-up" assertion isn't muddied by prepare.
+- import_playbook: ../../resources/prepare_host.yml
+
+- name: Prepare — first install with original URLs
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: opencode
+      vars:
+        opencode_provider_url: "http://original-server:8000/v1"
+        opencode_marketplace_url: "http://original-server:9000"
+        opencode_user: bob

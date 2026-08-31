@@ -5,8 +5,8 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: opencode-install
-    image: ubuntu:22.04
+  - name: opencode-upgrade
+    image: geerlingguy/docker-ubuntu2204-ansible
     pre_build_image: true
     command: /bin/bash
     tty: true
@@ -14,7 +14,7 @@ provisioner:
   name: ansible
   inventory:
     host_vars:
-      opencode-install:
+      opencode-upgrade:
         ansible_python_interpreter: /usr/bin/python3
   env:
     ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/../roles"

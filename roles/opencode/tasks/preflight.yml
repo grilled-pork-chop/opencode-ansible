@@ -1,0 +1,58 @@
+---
+# preflight: validate prerequisites before touching the target
+#
+# Steps:
+#   1. Assert the build artifacts (the pinned binary and the plugin-runtime
+#      archive) exist wherever opencode_artifact_dir points. They are fetched,
+#      not committed (too large for git), so a clean checkout has neither until
+#      `make fetch`. Fail early with that hint. Which machine gets stat'd
+#      depends on opencode_artifact_remote: the controller by default, the
+#      target itself when the artifacts live on a mount shared with the fleet.
+#   2. Require opencode_user. It has no default (guessing it from the connection
+#      would deploy into the wrong home when an admin account runs the play), so
+#      an unset one is a config error, not a binary-only deploy.
+#   3. Resolve that user's home with a keyed getent (which fails cleanly if the
+#      user is missing) and derive opencode_user_home and opencode_config_dir
+#      for the config stage.
+
+- name: "Verify the build artifacts exist"
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: opencode__artifact_stat
+  loop:
+    - "{{ opencode_binary_src }}"
+    - "{{ opencode_runtime_archive_src }}"
+  delegate_to: "{{ opencode_artifact_remote | bool | ternary(inventory_hostname, 'localhost') }}"
+  become: "{{ opencode_artifact_remote | bool }}"
+
+- name: "Abort if an artifact is missing"
+  ansible.builtin.fail:
+    msg: |
+      Missing build artifact: {{ item.item }}
+      ({{ opencode_artifact_remote | bool | ternary('expected on the target', 'expected on the controller') }})
+      Run 'make fetch' on a machine with internet first (then deploy offline),
+      or set opencode_artifact_dir to where the artifacts actually live.
+  when: not item.stat.exists
+  loop: "{{ opencode__artifact_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: "Require opencode_user"
+  ansible.builtin.assert:
+    that:
+      - opencode_user is defined
+      - opencode_user | default('') | trim | length > 0
+    fail_msg: >-
+      opencode_user is required and has no default. Name the account that gets
+      ~/.config/opencode for this host in inventory/hosts.yml, e.g.
+      "opencode_user: alice".
+
+- name: "Resolve the primary user's home"
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ opencode_user }}"
+
+- name: "Set the user's home and config paths"
+  ansible.builtin.set_fact:
+    opencode_user_home: "{{ ansible_facts.getent_passwd[opencode_user][4] }}"
+    opencode_config_dir: "{{ ansible_facts.getent_passwd[opencode_user][4] }}/.config/opencode"

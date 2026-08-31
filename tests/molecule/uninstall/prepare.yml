@@ -1,0 +1,15 @@
+---
+# Uninstall: shared host prep, then a full install for bob so converge.yml has
+# something to remove.
+- import_playbook: ../../resources/prepare_host.yml
+
+- name: Prepare — install so there is something to uninstall
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: opencode
+      vars:
+        opencode_provider_url: "http://10.0.0.1:8000/v1"
+        opencode_marketplace_url: "http://10.0.0.2:9000"
+        opencode_user: bob
