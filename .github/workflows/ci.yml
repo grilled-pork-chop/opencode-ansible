@@ -12,10 +12,10 @@ jobs:
     name: Lint (yamllint + ansible-lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
@@ -36,16 +36,16 @@ jobs:
       matrix:
         scenario: [install, upgrade, config, uninstall]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # node 24 builds the @opencode-ai/plugin runtime tarball in `make fetch`.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
